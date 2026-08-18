@@ -1,0 +1,33 @@
+# Local Neo4j for the graph backend. Bring it up, then:
+#   GRAPH_BACKEND=neo4j VECTOR_BACKEND=chroma  (see .env.example)
+#
+# Neo4j Browser: http://localhost:7474  (neo4j / helios-dev-password)
+# Query examples: LEARN.md
+
+services:
+  neo4j:
+    image: neo4j:5-community
+    container_name: rag-arena-neo4j
+    ports:
+      - "7474:7474"   # HTTP / Browser
+      - "7687:7687"   # Bolt / driver
+    environment:
+      NEO4J_AUTH: neo4j/helios-dev-password
+      NEO4J_server_memory_heap_initial__size: 512m
+      NEO4J_server_memory_heap_max__size: 1G
+      NEO4J_server_memory_pagecache_size: 512m
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    healthcheck:
+      # Neo4j accepts Bolt connections before it can actually serve queries; checking
+      # HTTP alone produces a green container that then fails every write.
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7474 >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+volumes:
+  neo4j_data:
+  neo4j_logs:

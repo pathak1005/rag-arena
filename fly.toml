@@ -1,0 +1,52 @@
+# fly.toml - single machine, two processes.
+#
+# 1GB is not padding: fastembed's ONNX session plus the Streamlit process plus the
+# in-memory indexes peak around 600-700MB. 512MB OOMs during the first embed call,
+# which presents as a mysterious connection reset rather than an OOM message.
+
+app = "rag-arena"
+primary_region = "sin"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  API_PORT = "8000"
+  PORT = "8501"
+  GRAPH_BACKEND = "networkx"
+  VECTOR_BACKEND = "numpy"
+  TOP_K = "3"
+
+[http_service]
+  internal_port = 8501           # Streamlit is the public surface
+  force_https = true
+  auto_stop_machines = "suspend"
+  auto_start_machines = true
+  min_machines_running = 0       # scale to zero; cold start ~8s with the model baked in
+  processes = ["app"]
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 20
+    hard_limit = 40
+
+# The API is reachable in-container at 127.0.0.1:8000. Uncomment to expose it publicly.
+# [[services]]
+#   internal_port = 8000
+#   protocol = "tcp"
+#   [[services.ports]]
+#     port = 443
+#     handlers = ["tls", "http"]
+
+[checks.health]
+  type = "http"
+  port = 8501
+  method = "GET"
+  path = "/_stcore/health"
+  interval = "30s"
+  timeout = "5s"
+  grace_period = "45s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"

@@ -1,0 +1,30 @@
+# Core runtime. Pinned to minor versions; requirements-lock.txt has exact pins.
+fastapi>=0.115,<1.0
+uvicorn[standard]>=0.30,<1.0
+pydantic>=2.7,<3.0
+python-multipart>=0.0.9
+streamlit>=1.38,<2.0
+requests>=2.32,<3.0
+
+# Retrieval
+rank-bm25>=0.2.2
+networkx>=3.3,<4.0
+numpy>=1.26,<3.0
+
+# Embeddings: ONNX runtime, not torch. Keeps the image ~400MB instead of ~2.5GB.
+fastembed>=0.4,<1.0
+
+# Generation
+groq>=0.11,<1.0
+
+# Parsing
+pypdf>=4.3,<6.0
+
+# Optional backends. Both are lazily imported; the app falls back without them.
+neo4j>=5.24,<7.0
+chromadb>=0.5,<2.0
+
+# Multi-agent orchestration + observability
+langgraph>=0.2,<2.0
+langchain-core>=0.3,<2.0
+langsmith>=0.1,<1.0
