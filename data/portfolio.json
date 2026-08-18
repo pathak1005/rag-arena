@@ -1,35 +1,194 @@
 {
   "profile": {
-    "name": "Ashish Pathak",
-    "headline": "[Add your headline in /admin]",
-    "location": "",
-    "email": "",
-    "summary": "[Add your professional summary in the admin panel. Two or three sentences: what you do, who for, and what you are known for.]",
+    "name": "Ashish Kumar Pathak",
+    "headline": "Enterprise Information & KM Architect  ·  AI Strategy & Governance  ·  GenAI Solutions",
+    "location": "Hyderabad, India",
+    "email": "ashishpathak1005@gmail.com",
+    "summary": "I engineer wisdom for both humans and machines. In practice that means building AI-ready information and knowledge systems, documentation, conversational interfaces, and automated pipelines — systems that reduce manual authoring load, keep knowledge bases current through built-in revalidation, and help AI strategy survive compliance and security review.\n\nOver 12+ years across enterprise SaaS, AEC/manufacturing, and consulting, I have turned manual, high-effort content workflows into structured, governed pipelines that improve speed to market, consistency, and reuse.\n\nI lead cross-functional AI and knowledge strategy end to end — translating business objectives into repeatable, compliant solution patterns, driving adoption, and aligning senior stakeholders around long-term roadmaps.",
     "portfolio_url": "",
     "calendly_url": "",
-    "linkedin_url": "",
+    "linkedin_url": "https://www.linkedin.com/in/ashish-kumar-pathak-b5716a16/",
     "github_url": "https://github.com/pathak1005"
   },
-  "skills": [],
-  "experience": [],
-  "education": [],
+  "skills": [
+    "Knowledge Management",
+    "Information Architecture",
+    "Taxonomy & Metadata Design",
+    "Content Governance & Lifecycle (ITIL-aligned)",
+    "Ontology Modelling",
+    "Knowledge Graphs",
+    "DITA & Structured Authoring",
+    "Developer & API Documentation",
+    "Controlled Vocabularies",
+    "Multi-language Content Operations",
+    "Content Migration",
+    "Enterprise RAG Pipeline Design",
+    "GraphRAG",
+    "Neo4j",
+    "Vector Databases",
+    "Retrieval Evaluation (RAGAS)",
+    "Multi-Agent Orchestration",
+    "Prompt Engineering",
+    "LLM-Assisted Authoring",
+    "NLP & OCR Pipelines",
+    "MCP",
+    "Claude",
+    "Microsoft Copilot Studio",
+    "Word2Vec",
+    "Python Automation",
+    "Azure AI Foundry",
+    "Docker",
+    "Cloud (Azure/AWS/GCP/IBM/Oracle)",
+    "ISO 42001",
+    "ISO 27701",
+    "Data Loss Prevention (DLP)",
+    "PII Detection & Compliance",
+    "Content Pipeline Automation",
+    "Metadata-Driven Personalisation",
+    "Product & Program Management",
+    "Roadmap Definition",
+    "Agile/Scrum Coaching",
+    "Oxygen XML",
+    "MadCap Flare",
+    "PTC Arbortext / Windchill",
+    "Confluence",
+    "JIRA",
+    "Postman",
+    "Sphinx",
+    "Power BI",
+    "Looker",
+    "Google Analytics",
+    "Figma",
+    "Drupal",
+    "Veeva Vault",
+    "SharePoint",
+    "Git",
+    "WalkMe"
+  ],
+  "experience": [
+    {
+      "title": "Staff Technical Writer — AI Knowledge Platform & Content Strategy",
+      "company": "ServiceNow India Pvt Ltd., Hyderabad",
+      "period": "Jun 2024 – Jul 2026",
+      "summary": "",
+      "highlights": [
+        "Designed an AI-driven knowledge architecture combining RAG pipelines, multi-agentic systems, LLMs, and metadata-driven retrieval to automate structured, AI-ingestible and agentic task documentation. Defined strategies for identifying, organising, sharing, storing, and maintaining organisational knowledge that is Findable, Accessible, Interoperable, and Reusable.",
+        "Co-defined the AI documentation platform roadmap with Product, Engineering, and UX, prototyping a content automation pipeline that generated draft documentation directly from live product demo interactions using agentic AI — reducing manual authoring effort while preserving governance and quality standards.",
+        "Established content governance standards, taxonomy, and metadata models for the knowledge base, defining review and revalidation cycles aligned to ITIL-style knowledge lifecycle practices to keep content current and reduce stale articles."
+      ]
+    },
+    {
+      "title": "Sr. Content Designer — Content Strategy & Adoption",
+      "company": "Autodesk India Pvt Ltd. (Remote, Pune)",
+      "period": "Mar 2022 – Jun 2024",
+      "summary": "",
+      "highlights": [
+        "Developed content strategy and adoption resources (API documentation, instructional video, graphics) for AEC and manufacturing software including Revit and Fusion, serving technical and non-technical audiences.",
+        "Documented federated data and taxonomy models that unified metadata schemas across Autodesk products, helping users understand consistent cross-product content classification and discovery."
+      ]
+    },
+    {
+      "title": "Consultant, Content Strategy",
+      "company": "Capgemini Engineering Ltd., Gurugram (IBM project)",
+      "period": "Jan 2021 – Mar 2022",
+      "summary": "",
+      "highlights": [
+        "Built clear, concise content plans supporting enterprise software implementations, aligning documentation deliverables with rollout timelines."
+      ]
+    },
+    {
+      "title": "Senior Content Lead (Associate Consultant)",
+      "company": "Infosys Ltd., Hyderabad",
+      "period": "May 2019 – Jan 2021",
+      "summary": "",
+      "highlights": [
+        "Authored how-to manuals and API documentation; built and drove cross-business-line adoption of DigiTran, the internal SOP documentation tool at Infosys."
+      ]
+    },
+    {
+      "title": "Technical Writer — User & API Documentation",
+      "company": "DSV Logistics (formerly Agility Logistics), Hyderabad",
+      "period": "May 2018 – May 2019",
+      "summary": "",
+      "highlights": [
+        "Developed user manuals, training videos, conversational interfaces, help documentation, and API documentation using Postman and Sphinx.",
+        "Built a Python-based conversational assistant integrating the Wolfram Alpha API and Elasticsearch to answer common FAQs, deployed via Slack."
+      ]
+    },
+    {
+      "title": "Technical Writer — Engineering User & API Documentation",
+      "company": "Wipro Ltd., Hyderabad",
+      "period": "Jan 2016 – May 2018",
+      "summary": "",
+      "highlights": [
+        "Produced user manuals, training video, help content, and API documentation for engineering products (CATIA V5, PTC Arbortext/Windchill, S1000D, ATA100)."
+      ]
+    },
+    {
+      "title": "Content Developer",
+      "company": "Apex CoVantage, Hyderabad",
+      "period": "Jun 2015 – Jan 2016",
+      "summary": "",
+      "highlights": [
+        "Developed parts catalogs and SEO content."
+      ]
+    },
+    {
+      "title": "Technical Officer",
+      "company": "PCRI, Hyderabad",
+      "period": "Sep 2013 – Mar 2015",
+      "summary": "",
+      "highlights": [
+        "Developed and tested packaging solutions across food, chemicals, agri, pharma, and FMCG; authored technical test reports."
+      ]
+    }
+  ],
+  "education": [
+    {
+      "qualification": "PGDBM — Masters in Marketing Management (68.5%)",
+      "institution": "NMIMS, Mumbai (SVKM Narsee Monjee Institute)",
+      "period": "Jan 2021 – Jan 2023"
+    },
+    {
+      "qualification": "B.Tech — Mechanical Engineering (72.77%)",
+      "institution": "Arjun College of Technology and Sciences, JNTU Hyderabad",
+      "period": "Jun 2009 – Jun 2013"
+    }
+  ],
+  "certifications": [
+    "Certified System Administrator, ServiceNow (CSA)",
+    "Certified Scrum Product Owner (CSPO)",
+    "ICAgile Certified Professional, Agile Coaching (ICP-ACC)"
+  ],
   "projects": [
     {
-      "name": "RAG Arena",
+      "name": "RAG Arena — Lexical vs Vector vs Graph retrieval, measured",
       "period": "2026",
-      "summary": "Lexical vs vector vs graph retrieval over one identical chunk set, with deterministic evaluation, a self-correcting LangGraph agent loop, and PII governance.",
+      "summary": "Three retrieval strategies over one identical chunk set with a shared prompt, so score differences are attributable to retrieval alone. Deterministic evaluation with no LLM in the scoring path, a self-correcting LangGraph agent loop, PII redaction before embedding, Neo4j and ChromaDB backends, and a RAG-readiness analyser.",
       "link": "https://github.com/pathak1005/rag-arena"
+    },
+    {
+      "name": "PII / Compliance Scanning Service",
+      "period": "",
+      "summary": "Presidio-based PII detection service on Azure Container Apps, flagging ISO / DPDP / GDPR-relevant content across documents and published pages.",
+      "link": ""
+    },
+    {
+      "name": "mygrowthpitch.org",
+      "period": "",
+      "summary": "GPT-powered text and voice interview preparation tool applying the SOAR, GROW, and STAR coaching frameworks.",
+      "link": "https://mygrowthpitch.org"
     }
   ],
   "blog": [],
   "resume": {
-    "markdown": "",
+    "markdown": "# Ashish Kumar Pathak\n\nEnterprise Information & KM Architect  ·  AI Strategy & Governance  ·  GenAI Solutions\n\nHyderabad, India  ·  ashishpathak1005@gmail.com\nhttps://www.linkedin.com/in/ashish-kumar-pathak-b5716a16/  ·  https://github.com/pathak1005\n\n## Professional Summary\n\nI engineer wisdom for both humans and machines. In practice that means building AI-ready information and knowledge systems, documentation, conversational interfaces, and automated pipelines — systems that reduce manual authoring load, keep knowledge bases current through built-in revalidation, and help AI strategy survive compliance and security review.\n\nOver 12+ years across enterprise SaaS, AEC/manufacturing, and consulting, I have turned manual, high-effort content workflows into structured, governed pipelines that improve speed to market, consistency, and reuse.\n\nI lead cross-functional AI and knowledge strategy end to end — translating business objectives into repeatable, compliant solution patterns, driving adoption, and aligning senior stakeholders around long-term roadmaps.\n\n## Experience\n\n### Staff Technical Writer — AI Knowledge Platform & Content Strategy\n**ServiceNow India Pvt Ltd., Hyderabad**  ·  *Jun 2024 – Jul 2026*\n\n- Designed an AI-driven knowledge architecture combining RAG pipelines, multi-agentic systems, LLMs, and metadata-driven retrieval to automate structured, AI-ingestible and agentic task documentation. Defined strategies for identifying, organising, sharing, storing, and maintaining organisational knowledge that is Findable, Accessible, Interoperable, and Reusable.\n- Co-defined the AI documentation platform roadmap with Product, Engineering, and UX, prototyping a content automation pipeline that generated draft documentation directly from live product demo interactions using agentic AI — reducing manual authoring effort while preserving governance and quality standards.\n- Established content governance standards, taxonomy, and metadata models for the knowledge base, defining review and revalidation cycles aligned to ITIL-style knowledge lifecycle practices to keep content current and reduce stale articles.\n\n### Sr. Content Designer — Content Strategy & Adoption\n**Autodesk India Pvt Ltd. (Remote, Pune)**  ·  *Mar 2022 – Jun 2024*\n\n- Developed content strategy and adoption resources (API documentation, instructional video, graphics) for AEC and manufacturing software including Revit and Fusion, serving technical and non-technical audiences.\n- Documented federated data and taxonomy models that unified metadata schemas across Autodesk products, helping users understand consistent cross-product content classification and discovery.\n\n### Consultant, Content Strategy\n**Capgemini Engineering Ltd., Gurugram (IBM project)**  ·  *Jan 2021 – Mar 2022*\n\n- Built clear, concise content plans supporting enterprise software implementations, aligning documentation deliverables with rollout timelines.\n\n### Senior Content Lead (Associate Consultant)\n**Infosys Ltd., Hyderabad**  ·  *May 2019 – Jan 2021*\n\n- Authored how-to manuals and API documentation; built and drove cross-business-line adoption of DigiTran, the internal SOP documentation tool at Infosys.\n\n### Technical Writer — User & API Documentation\n**DSV Logistics (formerly Agility Logistics), Hyderabad**  ·  *May 2018 – May 2019*\n\n- Developed user manuals, training videos, conversational interfaces, help documentation, and API documentation using Postman and Sphinx.\n- Built a Python-based conversational assistant integrating the Wolfram Alpha API and Elasticsearch to answer common FAQs, deployed via Slack.\n\n### Technical Writer — Engineering User & API Documentation\n**Wipro Ltd., Hyderabad**  ·  *Jan 2016 – May 2018*\n\n- Produced user manuals, training video, help content, and API documentation for engineering products (CATIA V5, PTC Arbortext/Windchill, S1000D, ATA100).\n\n### Content Developer\n**Apex CoVantage, Hyderabad**  ·  *Jun 2015 – Jan 2016*\n\n- Developed parts catalogs and SEO content.\n\n### Technical Officer\n**PCRI, Hyderabad**  ·  *Sep 2013 – Mar 2015*\n\n- Developed and tested packaging solutions across food, chemicals, agri, pharma, and FMCG; authored technical test reports.\n\n## Independent Projects\n\n**RAG Arena — Lexical vs Vector vs Graph retrieval, measured**  ·  *2026*\nThree retrieval strategies over one identical chunk set with a shared prompt, so score differences are attributable to retrieval alone. Deterministic evaluation with no LLM in the scoring path, a self-correcting LangGraph agent loop, PII redaction before embedding, Neo4j and ChromaDB backends, and a RAG-readiness analyser.\n\n**PII / Compliance Scanning Service**\nPresidio-based PII detection service on Azure Container Apps, flagging ISO / DPDP / GDPR-relevant content across documents and published pages.\n\n**mygrowthpitch.org**\nGPT-powered text and voice interview preparation tool applying the SOAR, GROW, and STAR coaching frameworks.\n\n## Certifications\n\n- Certified System Administrator, ServiceNow (CSA)\n- Certified Scrum Product Owner (CSPO)\n- ICAgile Certified Professional, Agile Coaching (ICP-ACC)\n\n## Education\n\n**PGDBM — Masters in Marketing Management (68.5%)** — NMIMS, Mumbai (SVKM Narsee Monjee Institute)  ·  *Jan 2021 – Jan 2023*\n\n**B.Tech — Mechanical Engineering (72.77%)** — Arjun College of Technology and Sciences, JNTU Hyderabad  ·  *Jun 2009 – Jun 2013*\n\n## Core Skills\n\nKnowledge Management, Information Architecture, Taxonomy & Metadata Design, Content Governance & Lifecycle (ITIL-aligned), Ontology Modelling, Knowledge Graphs, DITA & Structured Authoring, Developer & API Documentation, Controlled Vocabularies, Multi-language Content Operations, Content Migration, Enterprise RAG Pipeline Design, GraphRAG, Neo4j, Vector Databases, Retrieval Evaluation (RAGAS), Multi-Agent Orchestration, Prompt Engineering, LLM-Assisted Authoring, NLP & OCR Pipelines, MCP, Claude, Microsoft Copilot Studio, Word2Vec, Python Automation, Azure AI Foundry, Docker, Cloud (Azure/AWS/GCP/IBM/Oracle), ISO 42001, ISO 27701, Data Loss Prevention (DLP), PII Detection & Compliance, Content Pipeline Automation, Metadata-Driven Personalisation, Product & Program Management, Roadmap Definition, Agile/Scrum Coaching, Oxygen XML, MadCap Flare, PTC Arbortext / Windchill, Confluence, JIRA, Postman, Sphinx, Power BI, Looker, Google Analytics, Figma, Drupal, Veeva Vault, SharePoint, Git, WalkMe\n",
     "file_name": "",
     "file_b64": "",
-    "updated": ""
+    "updated": "2026-08-18T11:33:43+00:00"
   },
   "meta": {
-    "updated": "",
-    "version": 1
+    "updated": "2026-08-18T11:33:43+00:00",
+    "version": 2
   }
 }

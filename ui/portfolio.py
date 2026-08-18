@@ -134,6 +134,12 @@ def render_portfolio() -> None:
                 st.markdown(project["summary"])
             st.markdown("")
 
+    # -- certifications
+    if content.get("certifications"):
+        st.markdown("### Certifications")
+        for cert in content["certifications"]:
+            st.markdown("- " + cert)
+
     # -- education
     if content.get("education"):
         st.markdown("### Education")
@@ -340,6 +346,13 @@ def render_admin() -> None:
             "Skills (one per line)", value="\n".join(content.get("skills", [])), height=260
         )
         content["skills"] = [s.strip() for s in raw.splitlines() if s.strip()]
+        st.markdown("---")
+        raw_certs = st.text_area(
+            "Certifications (one per line)",
+            value="\n".join(content.get("certifications", [])),
+            height=120,
+        )
+        content["certifications"] = [c.strip() for c in raw_certs.splitlines() if c.strip()]
 
     # ---- projects
     with tabs[4]:

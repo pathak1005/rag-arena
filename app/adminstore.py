@@ -206,6 +206,7 @@ DEFAULT_CONTENT: dict[str, Any] = {
     "skills": [],
     "experience": [],
     "education": [],
+    "certifications": [],
     "projects": [
         {
             "name": "RAG Arena",
