@@ -17,3 +17,5 @@ requirements-lock.txt
 run.ps1
 Makefile
 deploy/
+data/admin_credentials.json
+data/golden_report.json

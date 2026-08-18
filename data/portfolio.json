@@ -1,0 +1,35 @@
+{
+  "profile": {
+    "name": "Ashish Pathak",
+    "headline": "[Add your headline in /admin]",
+    "location": "",
+    "email": "",
+    "summary": "[Add your professional summary in the admin panel. Two or three sentences: what you do, who for, and what you are known for.]",
+    "portfolio_url": "",
+    "calendly_url": "",
+    "linkedin_url": "",
+    "github_url": "https://github.com/pathak1005"
+  },
+  "skills": [],
+  "experience": [],
+  "education": [],
+  "projects": [
+    {
+      "name": "RAG Arena",
+      "period": "2026",
+      "summary": "Lexical vs vector vs graph retrieval over one identical chunk set, with deterministic evaluation, a self-correcting LangGraph agent loop, and PII governance.",
+      "link": "https://github.com/pathak1005/rag-arena"
+    }
+  ],
+  "blog": [],
+  "resume": {
+    "markdown": "",
+    "file_name": "",
+    "file_b64": "",
+    "updated": ""
+  },
+  "meta": {
+    "updated": "",
+    "version": 1
+  }
+}

@@ -76,6 +76,10 @@ WORKDIR /app
 COPY --chown=appuser:appuser app/ ./app/
 COPY --chown=appuser:appuser ui/ ./ui/
 COPY --chown=appuser:appuser data/demo_corpus/ ./data/demo_corpus/
+# portfolio.json carries the committed site content. Without this the export-and-commit
+# durability workflow silently does nothing - the container would always boot with
+# placeholder content no matter what was committed. golden_set.json powers `make eval`.
+COPY --chown=appuser:appuser data/*.json ./data/
 COPY --chown=appuser:appuser start.sh ./start.sh
 
 RUN chmod +x start.sh \
