@@ -1,6 +1,6 @@
 """
 Ashish Pathak – Knowledge Architect Portfolio.
-One-page site with embedded GraphRAG demo.
+Dark theme + pink accents. Animated hero + tabbed playground.
 """
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import streamlit as st
 
-# Import the homepage
-from ui.homepage import *
+# Import the homepage v2
+from ui.homepage_v2 import *
 
-# That's it. Homepage is now the entire app.
+# That's it.
