@@ -42,9 +42,10 @@ st.markdown(
     }
 
     section[data-testid='stSidebar'] {display:none;}
-    .block-container {max-width:1200px; margin:0 auto; padding-top:0rem; padding-left:24px; padding-right:24px; padding-bottom:2rem;}
+    .block-container {max-width:1200px; margin:0 auto; padding-top:1.5rem; padding-left:24px; padding-right:24px; padding-bottom:2rem;}
     [data-testid='stMetricDelta'] {display:none;}
-    header {margin-top: -40px;}
+    header {margin-top: 0; padding-top: 0;}
+    main {margin-top: 0; padding-top: 0;}
 
     .hero {font-size:2.8rem; font-weight:700; background:linear-gradient(135deg, #6366f1, #8b5cf6);
             -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:12px;}
@@ -396,16 +397,14 @@ elif nav == "Demo":
 
         st.divider()
 
-        st.markdown("#### How Copying is Prevented (Read-only Content)")
+        st.markdown("#### Content Selection & Sharing")
         st.markdown(
             "<div style='background:#f0f9ff; border-left:4px solid #6366f1; padding:16px; border-radius:8px;'>"
-            "<strong>CSS: user-select: none</strong><br>"
-            "All public content (Home, Demo examples) has CSS rule: <code>user-select: none</code>. "
-            "This prevents browser copy (Ctrl+C returns nothing). Works across Chrome, Firefox, Safari, Edge.<br><br>"
-            "<strong>Why:</strong> Protects portfolio content from being copy-pasted elsewhere. "
-            "Users can still read, but can't claim the text as their own.<br><br>"
-            "<strong>How:</strong> Applied to class <code>.readonly</code> in the stylesheet. "
-            "All prose sections wrapped in <code>&lt;div class='readonly'&gt;</code>."
+            "<strong>All content is fully selectable and copyable.</strong><br>"
+            "You can highlight, copy, and use text from the portfolio, home page, and demos without restrictions. "
+            "No CSS user-select blocking — everything is accessible.<br><br>"
+            "<strong>Share freely:</strong> Take quotes, cite examples, integrate into your own systems. "
+            "Attribution appreciated but not required."
             "</div>",
             unsafe_allow_html=True,
         )
