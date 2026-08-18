@@ -1,0 +1,58 @@
+# Render Blueprint - single web service.
+#
+# Render exposes exactly ONE port per service, which suits this app: Streamlit binds
+# $PORT and becomes the public surface, while uvicorn stays on loopback:8000 and is
+# never reachable from outside. That is the same topology as fly.toml.
+#
+# Memory: Render's free instance is 512 MB. Measured peak here is ~288 MB (API, fastembed
+# tuned) + ~150 MB (Streamlit) = ~440 MB. It fits, but with roughly 70 MB of headroom, so
+# a burst of concurrent viewers can OOM it. Two mitigations, pick one:
+#   - set ALLOW_EMBED_DOWNLOAD=0  -> TF-IDF path, ~93 MB API, very safe, weaker paraphrase
+#   - upgrade to the 2 GB Starter instance
+#
+# Free instances also spin down after ~15 minutes idle and cold-start in ~50 s. For a
+# portfolio link someone clicks once, that first impression is a blank loading screen.
+
+services:
+  - type: web
+    name: rag-arena
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free                     # change to "starter" for 2 GB and no spin-down
+    region: singapore
+    healthCheckPath: /_stcore/health
+    autoDeploy: true
+
+    dockerBuildArgs:
+      LEAN: "1"                    # drop chromadb + neo4j drivers
+      PREFETCH_MODEL: "1"          # bake the embedding model into the image
+
+    envVars:
+      - key: API_PORT
+        value: "8000"              # loopback only; Render publishes $PORT instead
+      - key: API_ENABLED
+        value: "1"
+      - key: UI_ENABLED
+        value: "1"
+      - key: EMBED_THREADS
+        value: "1"                 # worth ~180 MB of peak RSS
+      - key: EMBED_BATCH_SIZE
+        value: "8"
+      - key: MALLOC_ARENA_MAX
+        value: "2"
+      - key: GRAPH_BACKEND
+        value: "networkx"
+      - key: VECTOR_BACKEND
+        value: "numpy"
+      - key: TOP_K
+        value: "3"
+
+      # Secrets: set these in the Render dashboard, never here.
+      - key: GROQ_API_KEY
+        sync: false
+      - key: API_KEYS
+        sync: false
+      - key: PORTFOLIO_URL
+        sync: false
+      - key: CALENDLY_URL
+        sync: false
