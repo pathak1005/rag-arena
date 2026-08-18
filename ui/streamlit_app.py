@@ -1,9 +1,9 @@
-"""Professional portfolio + RAG demonstration.
+"""Professional AI knowledge architect portfolio + RAG demonstration.
 
-Navigation: Home (why hire) → Learn (technical depth) → Demo (editable, with observability sidebar) → Admin (portfolio management)
+Navigation: Home (why hire) → Learn (technical depth) → Demo (sample chat + file analysis) → Admin (resume)
 
-Demo has editable Petstore-style sample data. Change it, reload, compare retrieval. Sidebar shows real governance
-parameters and evaluation metrics per strategy.
+Demo shows: (1) sample chat with retrieval strategy comparison, (2) text→graph conversion explainer,
+(3) file upload with analysis.
 """
 from __future__ import annotations
 
@@ -22,145 +22,81 @@ from ui.portfolio import contact_banner, render_admin, render_home, render_learn
 
 API_BASE = os.getenv("API_BASE", "http://127.0.0.1:8000")
 TIMEOUT = 120
-MAX_EVAL_WORDS = 500
 
 st.set_page_config(
-    page_title="Ashish Pathak - Knowledge Architecture",
-    page_icon="\U0001F50D",
+    page_title="Ashish Pathak - AI Knowledge Architecture",
+    page_icon="🧠",  # brain emoji
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
+# Professional AI theme
 st.markdown(
-    "<style>"
-    "section[data-testid='stSidebar'] {display:none;}"
-    ".block-container {max-width:1200px; margin:0 auto; padding-top:2rem; padding-left:20px; padding-right:20px;}"
-    "[data-testid='stMetricDelta'] {display:none;}"
-    "</style>",
+    """
+    <style>
+    :root {
+        --primary: #6366f1;
+        --accent: #8b5cf6;
+        --success: #10b981;
+        --danger: #ef4444;
+    }
+
+    section[data-testid='stSidebar'] {display:none;}
+    .block-container {max-width:1200px; margin:0 auto; padding-top:2rem; padding-left:24px; padding-right:24px;}
+    [data-testid='stMetricDelta'] {display:none;}
+
+    .hero {font-size:2.8rem; font-weight:700; background:linear-gradient(135deg, #6366f1, #8b5cf6);
+            -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:12px;}
+    .subheader {font-size:1.1rem; opacity:0.8; font-weight:400;}
+    .sample-chat {background:#f9fafb; border-radius:12px; padding:20px; margin:16px 0;}
+    .chat-message {margin:12px 0; padding:12px 16px; border-radius:8px; line-height:1.6;}
+    .chat-user {background:#e0e7ff; border-left:3px solid #6366f1;}
+    .chat-assistant {background:#f3f4f6; border-left:3px solid #6366f1;}
+    .strategy-box {border:1px solid #e5e7eb; border-radius:8px; padding:16px; margin:12px 0;}
+    .badge {display:inline-block; padding:4px 12px; border-radius:6px; font-size:0.85rem; font-weight:600; margin-right:8px;}
+    .badge-lexical {background:#fef3c7; color:#b45309;}
+    .badge-vector {background:#dbeafe; color:#1d4ed8;}
+    .badge-graph {background:#d1fae5; color:#047857;}
+    .badge-hybrid {background:#ede9fe; color:#6d28d9;}
+    </style>
+    """,
     unsafe_allow_html=True,
 )
 
 STRATEGY_META = {
-    "lexical":      ("Lexical (BM25)", "#b45309"),
-    "vector":       ("Vector (semantic)", "#1d4ed8"),
-    "graph":        ("Graph (multi-hop)", "#047857"),
-    "hybrid_graph": ("Hybrid RAG", "#6d28d9"),
-    "hybrid":       ("Hybrid (RRF)", "#6d28d9"),
+    "lexical":      ("Lexical (BM25)", "#b45309", "Exact keyword matching"),
+    "vector":       ("Vector (semantic)", "#1d4ed8", "Meaning-based similarity"),
+    "graph":        ("Graph (multi-hop)", "#047857", "Follow relationships"),
+    "hybrid_graph": ("Hybrid RAG", "#6d28d9", "Vector seeds, graph expands"),
+    "hybrid":       ("Hybrid (RRF)", "#6d28d9", "Fuse all three rankings"),
 }
 
-SAMPLE_DATA = {
-    "service_ownership": """# Service Ownership
-
-## checkout-api
-- **Owner**: Team Meridian
-- **On-call**: Priya Raman (priya@company)
-- **Purpose**: Processes payment transactions
-- **Dependencies**: payments-gateway (settlement), ledger-service (audit log)
-- **Error codes**: ERR-7741 (duplicate transaction), ERR-7742 (insufficient funds), ERR-7743 (network timeout)
-
-## payments-gateway
-- **Owner**: Team Meridian
-- **On-call**: Rajesh Kumar (rajesh@company)
-- **Purpose**: Handles fund transfers to partner banks
-- **Dependencies**: compliance-check (regulatory), settlement-queue (async)
-
-## ledger-service
-- **Owner**: Team Genesis
-- **On-call**: Sarah Chen (sarah@company)
-- **Purpose**: Immutable transaction log
-- **Dependencies**: encryption-service (PII protection)
-
-## subscription-api
-- **Owner**: Team Helix
-- **On-call**: Marcus Johnson (marcus@company)
-- **Purpose**: Manages recurring billing
-- **Integrates with**: subscription-db, notification-service
-""",
-    "data_security": """# Data Protection & Incident Response
-
-## Customer Data Classification
-
-**PII (Personally Identifiable)**: Names, emails, phone numbers, addresses, payment methods
-- **Storage**: Encrypted at rest (AES-256)
-- **Transit**: TLS 1.3 only
-- **Access**: Requires audit log entry
-
-**Sensitive**: Error logs, debugging data
-- **Risk**: Customer data leaking into logs if not redacted
-- **Prevention**: Redaction layer before all log writes
-- **Detection**: Automated scan for patterns (emails, phone numbers, SSN)
-
-## Escalation on Security Incidents
-
-1. **Level 1 (Data leak suspected)**: On-call security engineer (on-call-security@company) + Team lead
-2. **Level 2 (Confirmed breach)**: CISO + Legal + Customer Communications
-3. **Level 3 (Third party affected)**: Notify affected parties within 72h per GDPR
-
-""",
-    "documentation": """# Documentation Standards
-
-## Why it matters
-- Bad docs = users email you instead of checking wiki
-- Retrievable docs = fewer questions, faster onboarding
-
-## Writing for retrieval
-
-1. **Name the subject explicitly**. Don't write "it depends on X". Write "checkout-api depends on payments-gateway for settlement."
-2. **One fact per sentence**. Chunking splits at sentence breaks. If you bury two facts in one sentence, retrieval misses one.
-3. **Use jargon consistently**. "checkout-api", "checkout API", "checkout system" all in one doc confuses embeddings.
-4. **Link across services**. "See payments-gateway for settlement logic." Enables multi-hop traversal.
-""",
+SAMPLE_CONVERSATIONS = {
+    "simple_literal": {
+        "question": "What is the error code for duplicate transactions in checkout-api?",
+        "best_strategy": "lexical",
+        "explanation": "Rare, specific tokens ('ERR-7741'). BM25 wins because it's exact matching. Vector would dilute the signal across semantic space.",
+        "sample_answer": "[Lexical] Error code ERR-7741 indicates a duplicate transaction in checkout-api.",
+    },
+    "semantic_paraphrase": {
+        "question": "How do we prevent customer information from accidentally ending up in log files?",
+        "best_strategy": "vector",
+        "explanation": "The question paraphrases the docs differently ('prevent customer information in logs' vs 'PII redaction layer'). Vector embeddings find semantic similarity even with different words. Lexical fails because there's no keyword overlap.",
+        "sample_answer": "[Vector] Use a redaction layer before all log writes. Automated scan for patterns (emails, phone numbers, SSN). PII is stored encrypted at rest.",
+    },
+    "multi_hop": {
+        "question": "Who should I escalate a checkout-api outage to?",
+        "best_strategy": "graph",
+        "explanation": "Three hops: checkout-api → owned by Team Meridian → on-call is Priya Raman. No single chunk contains this path. Graph traversal finds it by walking relationships.",
+        "sample_answer": "[Graph] Escalate to Priya Raman (priya@company), on-call for Team Meridian, which owns checkout-api.",
+    },
+    "complex_reasoning": {
+        "question": "If checkout-api fails due to a payment processing issue, which service should we check first, and who do we contact?",
+        "best_strategy": "hybrid",
+        "explanation": "Combines semantic understanding ('payment processing' → payments-gateway) + relationship traversal (payments-gateway → Team Meridian → Rajesh Kumar). Single strategy would miss context.",
+        "sample_answer": "[Hybrid] Check payments-gateway (owned by Team Meridian, on-call: Rajesh Kumar). Checkout-api depends on payments-gateway for settlement.",
+    },
 }
-
-
-# ============================================================================
-# API helpers
-# ============================================================================
-def api_get(path: str, **params):
-    try:
-        r = requests.get(API_BASE + path, params=params, timeout=TIMEOUT)
-        r.raise_for_status()
-        return r.json()
-    except requests.exceptions.ConnectionError:
-        return {"__error__": "Backend unreachable"}
-    except requests.exceptions.HTTPError as exc:
-        try:
-            detail = exc.response.json().get("detail", "")
-        except Exception:  # noqa: BLE001
-            detail = "Request failed."
-        return {"__error__": detail}
-    except Exception:  # noqa: BLE001
-        return {"__error__": "Error"}
-
-
-def api_post(path: str, payload: dict | None = None, files=None):
-    try:
-        r = requests.post(API_BASE + path, json=payload, files=files, timeout=TIMEOUT)
-        r.raise_for_status()
-        return r.json()
-    except requests.exceptions.ConnectionError:
-        return {"__error__": "Backend unreachable"}
-    except requests.exceptions.HTTPError as exc:
-        try:
-            detail = exc.response.json().get("detail", "")
-        except Exception:  # noqa: BLE001
-            detail = "Request failed."
-        return {"__error__": detail}
-    except Exception:  # noqa: BLE001
-        return {"__error__": "Error"}
-
-
-def err(payload) -> str | None:
-    return payload.get("__error__") if isinstance(payload, dict) else None
-
-
-def strategy_badge(name: str) -> str:
-    label, colour = STRATEGY_META.get(name, (name, "#475569"))
-    return (
-        "<span style='background:" + colour + ";color:#fff;padding:3px 10px;"
-        "border-radius:8px;font-size:0.78rem;font-weight:600;'>" + label + "</span>"
-    )
-
 
 # ============================================================================
 # Admin gate
@@ -168,7 +104,6 @@ def strategy_badge(name: str) -> str:
 if st.query_params.get("admin") == adminstore.ADMIN_SLUG:
     render_admin()
     st.stop()
-
 
 content = adminstore.load_content()
 
@@ -190,13 +125,11 @@ st.session_state["nav"] = nav
 
 st.write("")
 
-
 # ============================================================================
 # HOME
 # ============================================================================
 if nav == "Home":
     render_home(content)
-
 
 # ============================================================================
 # LEARN
@@ -204,197 +137,232 @@ if nav == "Home":
 elif nav == "Learn":
     render_learn()
 
-
 # ============================================================================
-# DEMO: RAG Simulator with Editable Sample Data
+# DEMO: Sample Chat + File Analysis
 # ============================================================================
 elif nav == "Demo":
     contact_banner(content, "demo_top")
 
-    health = api_get("/health")
-    backend_down = bool(err(health))
-    if backend_down:
-        st.error("Backend is down.")
-        st.stop()
+    health = st.cache_data(lambda: st.session_state.get("health") or {"n_chunks": 0}, ttl=5)() if "health" in st.session_state else {"n_chunks": 0}
 
-    n_chunks = health.get("n_chunks", 0)
+    # ---- Tab 1: Sample Chat Interface ----
+    tab1, tab2, tab3 = st.tabs(["Sample Chat", "Text → Graph Conversion", "Upload & Analyze"])
 
-    # ---- Analyze Before Loading: File inspection ----
-    st.markdown("### 0. Analyze Your Content (Before Loading)")
-    st.caption("Upload a file to see: PII found, chunks created, entities extracted, retrieval fitness score.")
+    with tab1:
+        st.markdown("### Sample: How to Sign Into Gmail (Documentation Example)")
+        st.caption("Same question, different retrieval strategies. Watch how answers change.")
 
-    uploaded_file = st.file_uploader("Upload text/markdown/PDF", type=["txt", "md", "markdown", "pdf", "docx"])
-    if uploaded_file is not None:
-        with st.spinner("Analyzing..."):
-            result = api_post("/upload?generate_brief=false", files={"file": (uploaded_file.name, uploaded_file.getvalue())})
-
-        if not err(result):
-            st.success(f"✓ Loaded {result.get('n_chunks', 0)} chunks from {uploaded_file.name}")
-
-            col1, col2, col3 = st.columns(3)
-            col1.metric("Chunks", result.get("n_chunks", 0))
-            col2.metric("Tokens", result.get("n_tokens", 0))
-            col3.metric("PII redacted", result.get("pii", {}).get("total_redacted", 0))
-
-            pii = result.get("pii", {})
-            if pii.get("total_redacted", 0) > 0:
-                st.warning(
-                    f"PII redacted: {pii.get('emails', 0)} emails, {pii.get('phones', 0)} phones, "
-                    f"{pii.get('ssns', 0)} SSNs, {pii.get('aws_keys', 0)} AWS keys"
-                )
-
-            graph = result.get("graph", {})
-            if graph:
-                st.markdown("**Entities & Relationships**")
-                c1, c2 = st.columns(2)
-                c1.metric("Entities", graph.get("entities_added", 0))
-                c2.metric("Relations", graph.get("relations_added", 0))
-                if graph.get("sample_triples"):
-                    st.caption("Sample relationships:")
-                    for s, r, o in graph["sample_triples"][:3]:
-                        st.caption(f"  {s} → {r} → {o}")
-
-            # Now offer to load it
-            if st.button("Load this file into workspace", type="primary"):
-                st.rerun()
-        else:
-            st.error(err(result))
-
-    st.divider()
-
-    # ---- Sidebar: Governance, Evaluation, Observability ----
-    with st.sidebar:
-        st.markdown("### Governance & Observability")
-
-        st.markdown("**Generation Parameters**")
-        temp = st.slider("Temperature", 0.0, 1.0, 0.0, 0.1, help="0=deterministic, 1=creative (more hallucination risk)")
-        top_p = st.slider("Top-p (nucleus)", 0.5, 1.0, 1.0, 0.05)
-        max_tokens = st.slider("Max tokens", 50, 500, 300, 50)
-
-        st.markdown("**Retrieval Thresholds**")
-        recall_target = st.slider("Recall target", 1, 10, 3, help="How many relevant passages to find")
-        latency_slo = st.slider("Latency SLO (ms)", 100, 5000, 2000, 200)
-
-        st.markdown("**Safety**")
-        poisoning_guard = st.slider("Injection detection", 0.0, 1.0, 0.7, 0.05, help="0=permissive, 1=strict")
-        hallucination_threshold = st.slider("Hallucination threshold", 0.0, 1.0, 0.7, 0.05, help="Min groundedness to accept")
-
-        st.divider()
-
-        if n_chunks > 0:
-            st.markdown("**Last Query Metrics**")
-            if "last_result" in st.session_state:
-                r = st.session_state["last_result"]
-                if r.get("results"):
-                    best = r["results"][0]
-                    m = best.get("metrics", {})
-                    st.metric("Groundedness", format(m.get("groundedness", 0.0), ".2f"))
-                    st.metric("Context relevance", format(m.get("context_relevance", 0.0), ".2f"))
-                    st.metric("Entity leakage", format(m.get("entity_leakage", 0.0), ".2f"))
-                    st.metric("Citation coverage", format(m.get("citation_coverage", 0.0), ".2f"))
-                    st.metric("Latency", str(best.get("latency_ms", "?")) + " ms")
-        st.markdown("(Run a query to populate)")
-
-    # ---- Main: Editable Sample Data ----
-    st.markdown("### 1. Editable Sample Content")
-    st.caption("Modify the text below and press 'Load'. Watch how retrieval changes. This is how writers should test before publishing.")
-
-    doc_type = st.selectbox(
-        "Sample dataset",
-        list(SAMPLE_DATA.keys()),
-        format_func=lambda x: x.replace("_", " ").title(),
-    )
-
-    content_text = st.text_area(
-        "Edit and load:",
-        value=SAMPLE_DATA[doc_type],
-        height=250,
-        key="sample_content",
-    )
-
-    if st.button("Load this content", type="primary"):
-        with st.spinner("Chunking, embedding, extracting relationships..."):
-            result = api_post("/reset") and api_post(
-                "/ingest_text",
-                {"title": doc_type.replace("_", " ").title(), "text": content_text, "generate_brief": False},
-            )
-        if err(result):
-            st.error(err(result))
-        else:
-            st.success(f"Loaded {result.get('n_chunks', 0)} chunks")
-            st.rerun()
-
-    if n_chunks == 0:
-        st.info("Load sample content above to continue.")
-        st.stop()
-
-    st.divider()
-
-    # ---- Query Interface ----
-    st.markdown("### 2. Compare Retrieval Strategies")
-
-    question = st.text_input("Ask a question about the content above")
-    include_hybrid = st.checkbox("Also include Hybrid strategies")
-    top_k = st.slider("Chunks per strategy", 1, 6, 3)
-
-    if st.button("Compare strategies", type="primary", disabled=not question.strip()):
-        strategies = ["lexical", "vector", "graph"]
-        if include_hybrid:
-            strategies.extend(["hybrid_graph", "hybrid"])
-
-        with st.spinner("Routing, retrieving, generating..."):
-            result = api_post(
-                "/query_compare",
-                {"question": question, "strategies": strategies, "top_k": top_k, "generate": True},
-            )
-        st.session_state["last_result"] = None if err(result) else result
-        if err(result):
-            st.error(err(result))
-
-    result = st.session_state.get("last_result")
-    if result:
-        routing = result.get("routing", {})
-        st.markdown("#### Routing decision")
-        st.caption(
-            "The router recommended **" + STRATEGY_META.get(routing.get("recommended", ""), ("unknown",))[0] + "** — "
-            + routing.get("rationale", "")
+        sample_choice = st.radio(
+            "Choose a question type to see:",
+            list(SAMPLE_CONVERSATIONS.keys()),
+            format_func=lambda x: {
+                "simple_literal": "Simple/Literal (Best: Lexical BM25)",
+                "semantic_paraphrase": "Semantic/Paraphrase (Best: Vector)",
+                "multi_hop": "Multi-hop (Best: Graph)",
+                "complex_reasoning": "Complex Reasoning (Best: Hybrid)",
+            }[x],
+            horizontal=True,
         )
 
-        if result.get("winner"):
-            st.success(
-                "**Best result:** " + STRATEGY_META.get(result["winner"], (result["winner"],))[0]
-                + " — " + result.get("winner_reason", "")
+        conv = SAMPLE_CONVERSATIONS[sample_choice]
+
+        st.markdown("<div class='sample-chat'>", unsafe_allow_html=True)
+        st.markdown(
+            "<div class='chat-message chat-user'><strong>You:</strong> " + conv["question"] + "</div>",
+            unsafe_allow_html=True,
+        )
+
+        st.markdown(
+            "<div style='margin:12px 0; padding:12px; background:#f0fdf4; border-left:3px solid #10b981; border-radius:8px;'>"
+            "<strong style='color:#047857;'>Best Strategy: " + STRATEGY_META[conv["best_strategy"]][0] + "</strong><br>"
+            "<span style='opacity:0.85;'>" + conv["explanation"] + "</span></div>",
+            unsafe_allow_html=True,
+        )
+
+        st.markdown(
+            "<div class='chat-message chat-assistant'><strong>Assistant:</strong><br>" + conv["sample_answer"] + "</div>",
+            unsafe_allow_html=True,
+        )
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        st.markdown("#### Why each strategy behaves differently")
+
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown(
+                "<div class='strategy-box'>"
+                "<strong style='color:#b45309;'>Lexical (BM25)</strong><br>"
+                "✓ Wins on exact terms, error codes, rare keywords<br>"
+                "✗ Fails on paraphrases, semantic variation<br>"
+                "<em>Example: 'ERR-7741' only appears once</em>"
+                "</div>",
+                unsafe_allow_html=True,
+            )
+        with col2:
+            st.markdown(
+                "<div class='strategy-box'>"
+                "<strong style='color:#1d4ed8;'>Vector (Semantic)</strong><br>"
+                "✓ Finds meaning even with different words<br>"
+                "✗ Can't traverse relationships<br>"
+                "<em>Example: 'prevent info leaks' → finds 'PII redaction'</em>"
+                "</div>",
+                unsafe_allow_html=True,
             )
 
-        # ---- Results side-by-side ----
-        st.markdown("#### Results")
-        cols = st.columns(len(result.get("results", [])))
-        for col, r in zip(cols, result.get("results", [])):
-            with col:
-                st.markdown(strategy_badge(r["strategy"]), unsafe_allow_html=True)
-                if r.get("answer"):
-                    st.markdown(r["answer"])
-                else:
-                    st.caption("No answer retrieved.")
-                m = r.get("metrics", {})
-                st.metric("Grounded", format(m.get("groundedness", 0.0), ".2f"))
-                st.metric("Relevance", format(m.get("context_relevance", 0.0), ".2f"))
-                st.metric("Leakage", format(m.get("entity_leakage", 0.0), ".2f"))
-                if r.get("sources"):
-                    with st.expander("Sources (" + str(len(r["sources"])) + ")"):
-                        for s in r["sources"]:
-                            st.caption("[" + str(s.get("rank", "?")) + "] " + s.get("doc_title", ""))
-                            st.markdown(s.get("text", "")[:200] + ("..." if len(s.get("text", "")) > 200 else ""))
+        col3, col4 = st.columns(2)
+        with col3:
+            st.markdown(
+                "<div class='strategy-box'>"
+                "<strong style='color:#047857;'>Graph (Multi-hop)</strong><br>"
+                "✓ Follows entity relationships across chunks<br>"
+                "✗ Weak on semantic variation<br>"
+                "<em>Example: 'checkout-api → Team Meridian → Priya Raman'</em>"
+                "</div>",
+                unsafe_allow_html=True,
+            )
+        with col4:
+            st.markdown(
+                "<div class='strategy-box'>"
+                "<strong style='color:#6d28d9;'>Hybrid (All three)</strong><br>"
+                "✓ Combines strength of all approaches<br>"
+                "✓ Best for complex, multi-dimensional questions<br>"
+                "<em>Example: 'payment issue? check service X, contact Y'</em>"
+                "</div>",
+                unsafe_allow_html=True,
+            )
 
+    with tab2:
+        st.markdown("### Text → Graph RAG: Conversion Process")
+
+        st.markdown(
+            "<div style='background:#f0f9ff; border-left:4px solid #6366f1; padding:16px; border-radius:8px; margin-bottom:20px;'>"
+            "<strong>The question:</strong> How do you convert plain text into a graph that enables multi-hop retrieval?"
+            "</div>",
+            unsafe_allow_html=True,
+        )
+
+        st.markdown("#### Step-by-step process")
+
+        steps = [
+            ("1. Input text", "Plain markdown or prose", "Example: 'checkout-api is owned by Team Meridian. Priya Raman is on-call.'"),
+            ("2. Chunk", "Split into ~110-token overlapping passages", "Enables granular retrieval"),
+            ("3. PII redaction", "Mask sensitive data before indexing", "Emails, phones, SSNs, AWS keys → [REDACTED_EMAIL]"),
+            ("4. Entity extraction", "Find names, organizations, systems", "Identifies: checkout-api, Team Meridian, Priya Raman"),
+            ("5. Relationship extraction", "Parse: subject → verb → object", "Stores: (checkout-api, owned_by, Team Meridian)"),
+            ("6. Graph construction", "Build network of entities + relationships", "Enables: 'From checkout-api, who is responsible?'"),
+            ("7. Traversal search", "Walk the graph: API → Team → Person → Contact", "Answer: 3-hop path = Priya Raman"),
+        ]
+
+        for title, desc, example in steps:
+            with st.expander(title):
+                st.write(desc)
+                st.caption(example)
+
+        st.markdown("#### When graph RAG works (and when it doesn't)")
+
+        col_yes, col_no = st.columns(2)
+        with col_yes:
+            st.markdown(
+                "<div style='background:#d1fae5; border-radius:8px; padding:16px;'>"
+                "<strong style='color:#047857;'>✓ Graph RAG excels at:</strong><br>"
+                "• Hierarchies (org structure, service dependencies)<br>"
+                "• Multi-step reasoning ('A depends on B; B owned by C')<br>"
+                "• Entity resolution ('Which team?' → traverse to find)<br>"
+                "• Relationship queries ('Who reports to whom?')<br>"
+                "</div>",
+                unsafe_allow_html=True,
+            )
+        with col_no:
+            st.markdown(
+                "<div style='background:#fee2e2; border-radius:8px; padding:16px;'>"
+                "<strong style='color:#dc2626;'>✗ Graph RAG struggles with:</strong><br>"
+                "• Text without entities (procedural docs, essays)<br>"
+                "• Semantic variation ('prevent leaks' vs 'data protection')<br>"
+                "• Complex reasoning needing multiple sources<br>"
+                "• Sparse graphs (fewer than ~20 entities)<br>"
+                "</div>",
+                unsafe_allow_html=True,
+            )
+
+    with tab3:
+        st.markdown("### Upload & Analyze: See Your Content Become Retrievable")
+
+        st.caption("Upload a file. Watch it become chunks → entities → graph. See evaluation scores.")
+
+        uploaded_file = st.file_uploader(
+            "Upload text, markdown, PDF, or DOCX",
+            type=["txt", "md", "markdown", "pdf", "docx"],
+            help="Max 5 MB. Will be redacted, chunked, analyzed.",
+        )
+
+        if uploaded_file is not None:
+            with st.spinner("Analyzing your content..."):
+                result = st.session_state.get("upload_result") or st.session_state.setdefault(
+                    "upload_result",
+                    requests.post(
+                        API_BASE + "/upload?generate_brief=false",
+                        files={"file": (uploaded_file.name, uploaded_file.getvalue())},
+                        timeout=120,
+                    ).json(),
+                )
+
+            if "_error_" not in str(result):
+                col1, col2, col3, col4 = st.columns(4)
+                col1.metric("Chunks", result.get("n_chunks", 0))
+                col2.metric("Tokens", result.get("n_tokens", 0))
+                col3.metric("PII redacted", result.get("pii", {}).get("total_redacted", 0))
+                col4.metric("Entities", result.get("graph", {}).get("entities_added", 0))
+
+                pii = result.get("pii", {})
+                if pii.get("total_redacted", 0) > 0:
+                    st.warning(
+                        f"Found & redacted: {pii.get('emails', 0)} emails, {pii.get('phones', 0)} phones, "
+                        f"{pii.get('ssns', 0)} SSNs, {pii.get('aws_keys', 0)} AWS keys"
+                    )
+
+                graph = result.get("graph", {})
+                if graph and graph.get("relations_added", 0) > 0:
+                    st.success(f"Graph built: {graph.get('entities_added', 0)} entities, {graph.get('relations_added', 0)} relationships")
+                    if graph.get("sample_triples"):
+                        with st.expander("Sample relationships found"):
+                            for s, r, o in graph["sample_triples"][:5]:
+                                st.caption(f"  **{s}** → {r} → **{o}**")
+                else:
+                    st.info("No entities/relationships detected. Good for procedural docs, less good for graph traversal.")
+
+                st.markdown("#### Evaluation (how well will this retrieve?)")
+                st.caption("These metrics predict how well each strategy will work on this content:")
+
+                eval_result = requests.post(
+                    API_BASE + "/analyze_readiness",
+                    json={"text": uploaded_file.getvalue().decode("utf-8", errors="ignore")[:2000], "title": uploaded_file.name},
+                    timeout=120,
+                ).json()
+
+                if "overall_score" in eval_result:
+                    score = eval_result["overall_score"]
+                    colour = "#10b981" if score >= 80 else "#f59e0b" if score >= 60 else "#ef4444"
+                    st.markdown(
+                        f"<div style='background:{colour};color:white;padding:20px;border-radius:8px;text-align:center;'>"
+                        f"<div style='font-size:2rem;font-weight:700;'>{score}</div>"
+                        f"<div>{eval_result.get('verdict', '')}</div></div>",
+                        unsafe_allow_html=True,
+                    )
+
+                    if eval_result.get("predicted_retrievability"):
+                        st.markdown("**Predicted per-strategy performance:**")
+                        r = eval_result["predicted_retrievability"]
+                        col1, col2, col3 = st.columns(3)
+                        col1.metric("Lexical", r.get("lexical", 50))
+                        col2.metric("Vector", r.get("vector", 50))
+                        col3.metric("Graph", r.get("graph", 50))
 
 # ============================================================================
 # ADMIN
 # ============================================================================
 elif nav == "Admin":
-    st.markdown("### Admin")
+    st.markdown("### Admin Panel")
     if st.session_state.get("admin_authed"):
         render_admin()
     else:
-        if st.query_params.get("admin") != adminstore.ADMIN_SLUG:
-            st.caption("Admin area restricted. Use the hidden URL to access.")
-            st.stop()
+        st.info("Sign in at: http://localhost:8501/?admin=ashish")

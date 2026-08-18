@@ -145,7 +145,7 @@ def render_learn() -> None:
     st.markdown(READONLY_STYLE, unsafe_allow_html=True)
 
     tabs = st.tabs(
-        ["RAG Fundamentals", "Multi-agent", "Evaluation", "Observability", "Governance", "Security", "Ethics", "API Design"]
+        ["RAG Fundamentals", "Multi-agent & MCP", "Evaluation", "Observability", "Governance", "Security", "Ethics", "API Design"]
     )
 
     # --- TAB 1: RAG Fundamentals ---
@@ -182,7 +182,7 @@ def render_learn() -> None:
             unsafe_allow_html=True,
         )
 
-    # --- TAB 2: Multi-agent ---
+    # --- TAB 2: Multi-agent & MCP ---
     with tabs[1]:
         st.markdown("### Multi-agent Orchestration (LangGraph)")
         st.markdown(
@@ -194,14 +194,18 @@ def render_learn() -> None:
             unsafe_allow_html=True,
         )
 
-        st.markdown("#### The pipeline")
+        st.markdown("#### The self-correcting pipeline (LangGraph)")
         st.markdown(
             "<div class='readonly'>"
-            "1. <strong>Plan:</strong> Classify the question (factual, procedural, conceptual).<br>"
-            "2. <strong>Retrieve:</strong> Run the suggested strategy.<br>"
-            "3. <strong>Grade:</strong> Is the context relevant? (deterministic scorer, not an LLM).<br>"
-            "4. <strong>Synthesize:</strong> Generate the answer.<br>"
-            "5. <strong>Verify:</strong> Is the answer grounded in the context? If not, loop back to Retrieve with a different strategy.<br>"
+            "1. <strong>Plan:</strong> Classify the question (literal fact, procedural, multi-hop, conceptual).<br>"
+            "2. <strong>Retrieve:</strong> Run the router's recommended strategy.<br>"
+            "3. <strong>Grade:</strong> Is context relevant? (deterministic scorer, not an LLM grading itself).<br>"
+            "4. <strong>Synthesize:</strong> Generate the answer from context.<br>"
+            "5. <strong>Verify:</strong> Is answer grounded (groundedness ≥ 0.7)? <br>"
+            "   <strong>If yes:</strong> Return answer with metrics.<br>"
+            "   <strong>If no:</strong> Loop back to Retrieve with a different strategy (up to 3 attempts).<br><br>"
+            "<strong>Key insight:</strong> Grading is deterministic (measure token overlap, not LLM opinion). "
+            "So the loop can be sure it's catching real retrieval failures, not perception bias."
             "</div>",
             unsafe_allow_html=True,
         )
@@ -209,9 +213,40 @@ def render_learn() -> None:
         st.markdown("#### Model Context Protocol (MCP)")
         st.markdown(
             "<div class='readonly'>"
-            "MCP lets agents interact with external systems (Slack, Jira, databases) safely. "
-            "Example: an agent retrieving docs from a knowledge base, checking who owns a service in Jira, "
-            "then posting a summary to Slack — all in one conversation, with audit trails for every action."
+            "<strong>What it is:</strong> A standard protocol for agents to interact with external tools safely, "
+            "with full traceability. Not just RAG + LLM, but RAG + LLM + live systems (Slack, Jira, databases, etc)."
+            "</div>",
+            unsafe_allow_html=True,
+        )
+
+        st.markdown("**Example: Multi-step incident response**")
+        st.markdown(
+            "<div class='readonly'>"
+            "User: 'Checkout-api is failing. What do we do?'<br><br>"
+            "Agent: (1) Retrieves docs → finds checkout-api depends on payments-gateway. "
+            "(2) Queries Jira via MCP → checks if there's an open incident. "
+            "(3) Checks PagerDuty via MCP → who is on-call for payments-gateway. "
+            "(4) Posts to #incidents Slack channel via MCP with summary. "
+            "(5) Returns structured response: problem, root cause, on-call engineer, ticket link.<br><br>"
+            "<strong>Benefits:</strong> "
+            "Single conversation source-of-truth. No copy-paste. Audit trail of every API call. "
+            "Agent can verify facts (if Jira says 'resolved' but docs say 'investigate', flag the inconsistency)."
+            "</div>",
+            unsafe_allow_html=True,
+        )
+
+        st.markdown("#### Why deterministic grading matters")
+        st.markdown(
+            "<div class='readonly'>"
+            "If you use an LLM to grade its own answer ('Is this good?'), you get:<br>"
+            "• Bias: LLM is predisposed to defend its answer ('yes, this is great')<br>"
+            "• No improvement loop: can't tell if re-routing fixed anything<br>"
+            "• Cost: extra LLM call per answer<br><br>"
+            "Deterministic grading (measure groundedness, context_relevance, entity_leakage directly) gives you:<br>"
+            "• Objective feedback: '47% of your answer isn't in the context'<br>"
+            "• Real improvement loop: re-route, measure again, see if it went up<br>"
+            "• Zero cost: just token-level math<br>"
+            "• Explainability: users see exactly why the agent chose a strategy"
             "</div>",
             unsafe_allow_html=True,
         )
@@ -637,23 +672,47 @@ def render_admin() -> None:
 
     with tabs[1]:
         resume = content.setdefault("resume", {})
-        st.markdown("**Upload resume (PDF or DOCX)**")
-        uploaded = st.file_uploader("Resume file (max 5 MB)", type=["pdf", "docx"])
-        if uploaded is not None:
-            raw = uploaded.getvalue()
-            if len(raw) > 5 * 1024 * 1024:
-                st.error("File exceeds 5 MB.")
-            else:
-                import base64 as _b64
-                from datetime import datetime, timezone
+        st.markdown("**Resume: Upload file or link to external storage**")
 
-                resume["file_b64"] = _b64.b64encode(raw).decode("ascii")
-                resume["file_name"] = uploaded.name
-                resume["updated"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
-                st.success("Loaded " + uploaded.name)
+        storage_type = st.radio("How do you want to store your resume?", ["Upload file", "Link to external (Google Drive, Dropbox, etc)"])
 
-        if resume.get("file_name"):
-            st.caption("Currently: " + resume["file_name"])
+        if storage_type == "Upload file":
+            st.caption("PDF or DOCX (max 5 MB)")
+            uploaded = st.file_uploader("Resume file", type=["pdf", "docx"], key="resume_upload")
+            if uploaded is not None:
+                raw = uploaded.getvalue()
+                if len(raw) > 5 * 1024 * 1024:
+                    st.error("File exceeds 5 MB.")
+                else:
+                    import base64 as _b64
+                    from datetime import datetime, timezone
+
+                    resume["file_b64"] = _b64.b64encode(raw).decode("ascii")
+                    resume["file_name"] = uploaded.name
+                    resume["updated"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+                    resume["external_link"] = ""
+                    st.success("Loaded " + uploaded.name)
+
+            if resume.get("file_name"):
+                st.success("✓ Stored: " + resume["file_name"])
+                if st.button("Clear and use external link instead"):
+                    resume["file_b64"] = ""
+                    resume["file_name"] = ""
+                    st.rerun()
+
+        else:
+            st.caption("Paste a shareable link (Google Drive, Dropbox, OneDrive, etc)")
+            link = st.text_input(
+                "External resume link",
+                value=resume.get("external_link", ""),
+                placeholder="https://drive.google.com/file/d/...",
+            )
+            if link:
+                resume["external_link"] = link
+                resume["file_b64"] = ""
+                resume["file_name"] = ""
+                st.success("✓ Linked to external storage")
+                st.caption("Users will click the link to view your resume.")
 
     with tabs[2]:
         content["experience"] = _list_editor(
