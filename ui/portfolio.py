@@ -80,7 +80,7 @@ def render_home(content: dict) -> None:
     st.markdown(READONLY_STYLE, unsafe_allow_html=True)
 
     st.markdown(
-        "<div class='readonly' style='padding:40px 0 20px;'>"
+        "<div class='readonly' style='padding:20px 0;'>"
         "<div style='font-size:3.2rem;font-weight:700;line-height:1.1;margin-bottom:16px;'>"
         "12 years of knowledge at scale"
         "</div>"
@@ -129,8 +129,6 @@ def render_home(content: dict) -> None:
     )
 
     st.divider()
-
-    contact_banner(content, "home_banner")
 
     # Redirect to demo
     if st.button("Explore the demo →", type="primary", use_container_width=True):
@@ -752,13 +750,32 @@ def render_admin() -> None:
     with tabs[6]:
         import json as _json
 
-        st.markdown("**Export to git**")
+        st.markdown("**Export Portfolio (Git-backed persistence)**")
+        st.caption(
+            "On ephemeral containers (Fly, Render, HF Spaces), data in memory vanishes on restart. "
+            "Export → Commit to git → Redeploy. On next boot, portfolio.json is already there."
+        )
+
         st.download_button(
             "Export portfolio.json",
             data=_json.dumps(content, indent=2, ensure_ascii=False),
             file_name="portfolio.json",
             mime="application/json",
             type="primary",
+            use_container_width=True,
+        )
+
+        st.markdown("**Steps to make changes permanent:**")
+        st.markdown(
+            "<div style='background:#f0fdf4; padding:12px; border-radius:8px; font-size:0.9rem;'>"
+            "1. Edit your profile, resume, experience, etc. in the tabs above<br>"
+            "2. Click 'Save changes' at the bottom<br>"
+            "3. Click 'Export portfolio.json' here<br>"
+            "4. Commit to git: <code>git add data/portfolio.json && git commit -m 'Update portfolio'</code><br>"
+            "5. Push to repo: <code>git push origin main</code><br>"
+            "6. Redeploy (Fly, Render, or HF Spaces will rebuild from the repo)<br>"
+            "</div>",
+            unsafe_allow_html=True,
         )
 
     with tabs[7]:

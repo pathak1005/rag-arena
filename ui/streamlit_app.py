@@ -18,7 +18,7 @@ import requests
 import streamlit as st
 
 from app import adminstore
-from ui.portfolio import contact_banner, render_admin, render_home, render_learn
+from ui.portfolio import render_admin, render_home
 
 API_BASE = os.getenv("API_BASE", "http://127.0.0.1:8000")
 TIMEOUT = 120
@@ -42,8 +42,9 @@ st.markdown(
     }
 
     section[data-testid='stSidebar'] {display:none;}
-    .block-container {max-width:1200px; margin:0 auto; padding-top:2rem; padding-left:24px; padding-right:24px;}
+    .block-container {max-width:1200px; margin:0 auto; padding-top:0rem; padding-left:24px; padding-right:24px; padding-bottom:2rem;}
     [data-testid='stMetricDelta'] {display:none;}
+    header {margin-top: -40px;}
 
     .hero {font-size:2.8rem; font-weight:700; background:linear-gradient(135deg, #6366f1, #8b5cf6);
             -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:12px;}
@@ -115,7 +116,7 @@ if "nav" not in st.session_state:
 
 nav = st.segmented_control(
     "Navigate",
-    ["Home", "Learn", "Demo", "Admin"],
+    ["Home", "Demo", "Admin"],
     default=st.session_state["nav"],
     label_visibility="collapsed",
 )
@@ -132,21 +133,13 @@ if nav == "Home":
     render_home(content)
 
 # ============================================================================
-# LEARN
-# ============================================================================
-elif nav == "Learn":
-    render_learn()
-
-# ============================================================================
-# DEMO: Sample Chat + File Analysis
+# DEMO: Sample Chat + File Analysis + API Docs
 # ============================================================================
 elif nav == "Demo":
-    contact_banner(content, "demo_top")
-
     health = st.cache_data(lambda: st.session_state.get("health") or {"n_chunks": 0}, ttl=5)() if "health" in st.session_state else {"n_chunks": 0}
 
-    # ---- Tab 1: Sample Chat Interface ----
-    tab1, tab2, tab3 = st.tabs(["Sample Chat", "Text → Graph Conversion", "Upload & Analyze"])
+    # ---- Tabs ----
+    tab1, tab2, tab3, tab4 = st.tabs(["Sample Chat", "Text → Graph Conversion", "Upload & Analyze", "API Documentation"])
 
     with tab1:
         st.markdown("### Sample: How to Sign Into Gmail (Documentation Example)")
@@ -357,6 +350,86 @@ elif nav == "Demo":
                         col2.metric("Vector", r.get("vector", 50))
                         col3.metric("Graph", r.get("graph", 50))
 
+    with tab4:
+        st.markdown("### API Documentation")
+        st.caption("All endpoints below. Full interactive docs at /docs")
+
+        st.markdown("#### Core Endpoints")
+
+        st.markdown("**POST /query_compare** — Compare retrieval strategies")
+        st.code(
+            """{
+  "question": "Who owns checkout-api?",
+  "strategies": ["lexical", "vector", "graph", "hybrid"],
+  "top_k": 3,
+  "generate": true
+}""",
+            language="json",
+        )
+        st.caption("Response: question, routing decision, results per strategy with metrics (groundedness, relevance, leakage, citation_coverage)")
+
+        st.markdown("**POST /chat** — Single-answer retrieval")
+        st.code(
+            """{
+  "question": "What are the error codes?",
+  "strategy": "vector",
+  "top_k": 3
+}""",
+            language="json",
+        )
+
+        st.markdown("**POST /upload** — Ingest a document")
+        st.caption("Multipart file upload (PDF, DOCX, TXT, MD). Returns chunks, tokens, PII redacted, entities extracted.")
+
+        st.markdown("**POST /analyze_readiness** — Score content before uploading")
+        st.code(
+            """{
+  "text": "checkout-api is owned by Team Meridian...",
+  "title": "Service Ownership"
+}""",
+            language="json",
+        )
+        st.caption("Response: overall_score (0-100), verdict, predicted_retrievability per strategy, findings to fix")
+
+        st.markdown("**GET /health** — System status")
+        st.caption("Returns: status (ok/degraded), n_documents, n_chunks, n_entities, n_relations, llm_available, uptime_s")
+
+        st.divider()
+
+        st.markdown("#### How Copying is Prevented (Read-only Content)")
+        st.markdown(
+            "<div style='background:#f0f9ff; border-left:4px solid #6366f1; padding:16px; border-radius:8px;'>"
+            "<strong>CSS: user-select: none</strong><br>"
+            "All public content (Home, Demo examples) has CSS rule: <code>user-select: none</code>. "
+            "This prevents browser copy (Ctrl+C returns nothing). Works across Chrome, Firefox, Safari, Edge.<br><br>"
+            "<strong>Why:</strong> Protects portfolio content from being copy-pasted elsewhere. "
+            "Users can still read, but can't claim the text as their own.<br><br>"
+            "<strong>How:</strong> Applied to class <code>.readonly</code> in the stylesheet. "
+            "All prose sections wrapped in <code>&lt;div class='readonly'&gt;</code>."
+            "</div>",
+            unsafe_allow_html=True,
+        )
+
+        st.markdown("#### Resume & Portfolio Export")
+        st.markdown(
+            "<div style='background:#f0fdf4; border-left:4px solid #10b981; padding:16px; border-radius:8px;'>"
+            "<strong>Why persistence matters:</strong><br>"
+            "On Fly.io, Render, or Hugging Face Spaces, the container restarts often. "
+            "Any data in memory is lost. That's why:<br><br>"
+            "<strong>Portfolio = Git-backed</strong><br>"
+            "Edit in Admin → Save → Export to JSON → Commit to data/portfolio.json in repo → Redeploy. "
+            "On next container restart, portfolio.json is already there.<br><br>"
+            "<strong>Resume = Export + Commit</strong><br>"
+            "Upload PDF/DOCX in Admin → base64-encoded in portfolio.json → Download / Export → Commit. "
+            "When someone visits, resume is served from the committed JSON.<br><br>"
+            "<strong>Both export to PDF + JSON:</strong><br>"
+            "• JSON: for programmatic use, API, version control<br>"
+            "• PDF: for download, sharing, printing<br>"
+            "In Admin: click 'Export' → saves portfolio.json locally → commit to repo."
+            "</div>",
+            unsafe_allow_html=True,
+        )
+
 # ============================================================================
 # ADMIN
 # ============================================================================
@@ -366,3 +439,20 @@ elif nav == "Admin":
         render_admin()
     else:
         st.info("Sign in at: http://localhost:8501/?admin=ashish")
+
+# ============================================================================
+# FOOTER: Global contact + Calendly
+# ============================================================================
+st.divider()
+st.markdown(
+    "<div style='display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;'>"
+    "<div style='font-size:0.9rem;opacity:0.75;'>"
+    "Questions about knowledge systems or RAG? Contact <strong>Ashish Pathak</strong> "
+    "(<a href='mailto:ashishpathak1005@gmail.com'>ashishpathak1005@gmail.com</a>)"
+    "</div>"
+    "<a href='https://calendly.com/ashishpathak1005/30min' target='_blank' "
+    "style='background:#6366f1;color:#fff;padding:8px 16px;border-radius:8px;font-weight:600;font-size:0.9rem;"
+    "text-decoration:none;white-space:nowrap;'>Book 30 minutes →</a>"
+    "</div>",
+    unsafe_allow_html=True,
+)
