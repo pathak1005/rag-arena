@@ -1,53 +1,50 @@
-# Single-app deployment: API + UI in one machine.
+# fly.toml app configuration file generated for rag-arena on 2026-08-18T19:19:39Z
 #
-# 512 MB is a measured requirement, not padding:
-#   API process peak RSS ....... 288 MB  (fastembed, EMBED_THREADS=1, batch 8)
-#   Streamlit process .......... 130-200 MB
-#   ------------------------------------------
-#   total ...................... 420-490 MB
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
-# 256 MB cannot host both. For the free-tier path use the two-app split in deploy/.
 
-app = "rag-arena"
-primary_region = "sin"
+app = 'rag-arena'
+primary_region = 'sin'
 
 [build]
-  dockerfile = "Dockerfile"
+  dockerfile = 'Dockerfile'
+
   [build.args]
-    LEAN = "1"            # drop chromadb + neo4j drivers; in-process backends are used
-    PREFETCH_MODEL = "1"  # bake the embedding model into the image
+    LEAN = '1'
+    PREFETCH_MODEL = '1'
 
 [env]
-  API_PORT = "8000"
-  PORT = "8501"
-  GRAPH_BACKEND = "networkx"
-  VECTOR_BACKEND = "numpy"
-  EMBED_THREADS = "1"
-  EMBED_BATCH_SIZE = "8"
-  TOP_K = "3"
+  API_PORT = '8000'
+  EMBED_BATCH_SIZE = '8'
+  EMBED_THREADS = '1'
+  GRAPH_BACKEND = 'networkx'
+  PORT = '8501'
+  TOP_K = '3'
+  VECTOR_BACKEND = 'numpy'
 
 [http_service]
-  internal_port = 8501           # Streamlit is the public surface
+  internal_port = 8501
   force_https = true
-  auto_stop_machines = "suspend"
+  auto_stop_machines = 'suspend'
   auto_start_machines = true
-  min_machines_running = 0       # scale to zero; suspend/resume is ~1s vs ~8s cold boot
-  processes = ["app"]
+  min_machines_running = 0
+  processes = ['app']
 
   [http_service.concurrency]
-    type = "requests"
-    soft_limit = 15
+    type = 'requests'
     hard_limit = 30
+    soft_limit = 15
 
-[checks.health]
-  type = "http"
-  port = 8501
-  method = "GET"
-  path = "/_stcore/health"
-  interval = "30s"
-  timeout = "5s"
-  grace_period = "60s"
+[checks]
+  [checks.health]
+    port = 8501
+    type = 'http'
+    interval = '30s'
+    timeout = '5s'
+    grace_period = '1m0s'
+    method = 'GET'
+    path = '/_stcore/health'
 
 [[vm]]
-  size = "shared-cpu-1x"
-  memory = "512mb"
+  size = 'shared-cpu-1x'
+  memory = '512mb'
