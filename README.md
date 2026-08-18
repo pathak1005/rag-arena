@@ -191,6 +191,7 @@ accuracy. Building one (30–40 questions stratified by query type) is the top i
 
 | Document | What it covers |
 | --- | --- |
+| [SNAPSHOT.md](SNAPSHOT.md) | **Start here** - what exists, what it does, and what is not built yet |
 | [docs/GRAPHRAG.md](docs/GRAPHRAG.md) | How graph RAG works here, the data model, and **how to convert an existing vector RAG to graph RAG** without re-chunking or re-embedding |
 | [docs/PLAN.md](docs/PLAN.md) | Build plan, phase status, what's done and what isn't |
 | [docs/FEATURES.md](docs/FEATURES.md) | Feature specification with acceptance criteria |
