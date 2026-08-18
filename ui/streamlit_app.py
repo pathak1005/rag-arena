@@ -9,8 +9,16 @@ from __future__ import annotations
 import os
 import time
 
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 import requests
 import streamlit as st
+
+from app import adminstore
+from ui.portfolio import render_admin, render_portfolio
 
 API_BASE = os.getenv("API_BASE", "http://127.0.0.1:8000")
 TIMEOUT = 120
@@ -158,6 +166,17 @@ def render_metrics(result: dict, compact: bool = False) -> None:
 
 
 # --------------------------------------------------------------------------
+# Admin gate
+# --------------------------------------------------------------------------
+# Reached at ?admin=<ADMIN_SLUG>. The slug keeps the panel out of casual view and out
+# of the tab bar; the scrypt password hash is the actual control. See app/adminstore.py.
+_params = st.query_params
+if _params.get("admin") == adminstore.ADMIN_SLUG:
+    render_admin()
+    st.stop()
+
+
+# --------------------------------------------------------------------------
 # Sidebar
 # --------------------------------------------------------------------------
 with st.sidebar:
@@ -246,12 +265,17 @@ with st.sidebar:
 # Tabs
 # --------------------------------------------------------------------------
 (
-    tab_chat, tab_agent, tab_arena, tab_readiness, tab_playground,
+    tab_home, tab_chat, tab_agent, tab_arena, tab_readiness, tab_playground,
     tab_graph, tab_ingest, tab_about,
 ) = st.tabs([
-    "Chat", "Agent Pipeline", "Evaluation Arena", "RAG Readiness", "API Playground",
-    "Knowledge Graph", "Ingestion & Governance", "Architecture",
+    "Home", "Chat", "Agent Pipeline", "Evaluation Arena", "RAG Readiness",
+    "API Playground", "Knowledge Graph", "Ingestion & Governance", "Architecture",
 ])
+
+
+# ============================== HOME ======================================
+with tab_home:
+    render_portfolio()
 
 
 # ========================= AGENT PIPELINE =================================

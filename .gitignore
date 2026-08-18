@@ -5,3 +5,7 @@ __pycache__/
 data/chroma/
 data/briefs/*.md
 .streamlit/secrets.toml
+
+# Owner credentials - never commit. Regenerate via the admin panel on each host.
+data/admin_credentials.json
+data/portfolio.tmp
