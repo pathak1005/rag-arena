@@ -9,9 +9,40 @@ DATA_DIR = ROOT / "data"
 CORPUS_DIR = DATA_DIR / "demo_corpus"
 BRIEF_DIR = DATA_DIR / "briefs"
 
+
+def _load_dotenv(path: Path) -> None:
+    """Load .env into the environment, without adding a dependency.
+
+    Real environment variables always win: on Fly, Render, and HF Spaces the platform
+    injects secrets that way, and a stale committed .env silently overriding them would
+    be a genuinely nasty bug to track down.
+    """
+    if not path.exists():
+        return
+    try:
+        for raw in path.read_text(encoding="utf-8").splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            key, value = key.strip(), value.strip()
+            if value[:1] == value[-1:] and value[:1] in {'"', "'"}:
+                value = value[1:-1]
+            os.environ.setdefault(key, value)
+    except OSError:
+        pass
+
+
+_load_dotenv(ROOT / ".env")
+
 # --- LLM -------------------------------------------------------------------
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
-GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+# llama-3.3-70b-versatile was decommissioned on Groq and now 404s with
+# `model_not_found`. Because every LLM failure degrades to the extractive fallback
+# rather than erroring, that presented as "answers look oddly disjointed" instead of
+# an outage - the failure was only visible in the logs and in `degraded: true`.
+# Check the live list with `GET /v1/models` before pinning a replacement.
+GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 LLM_TIMEOUT_S = float(os.getenv("LLM_TIMEOUT_S", "45"))
 
 # Groq public pricing for llama-3.3-70b-versatile, USD per 1M tokens.

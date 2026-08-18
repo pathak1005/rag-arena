@@ -168,7 +168,10 @@ def backends() -> dict:
 # Ingestion
 # --------------------------------------------------------------------------
 @app.post("/upload", response_model=IngestResponse, tags=["ingestion"])
-async def upload(file: UploadFile = File(...)) -> IngestResponse:
+async def upload(
+    file: UploadFile = File(...),
+    generate_brief: bool = Query(True, description="Set false to skip the LLM brief call and return faster."),
+) -> IngestResponse:
     """Upload a document. PII is redacted before chunking, embedding, or LLM contact."""
     filename = file.filename or "untitled"
     suffix = ("." + filename.rsplit(".", 1)[-1].lower()) if "." in filename else ""
@@ -201,7 +204,7 @@ async def upload(file: UploadFile = File(...)) -> IngestResponse:
         raise HTTPException(status_code=422, detail="No extractable text in the document.")
 
     try:
-        return get_engine().ingest(title=filename, text=text)
+        return get_engine().ingest(title=filename, text=text, generate_brief=generate_brief)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
@@ -223,9 +226,21 @@ def seed_demo() -> dict:
     engine = get_engine()
     if not CORPUS_DIR.exists():
         raise HTTPException(status_code=404, detail="Demo corpus directory not found.")
+    # generate_brief=False: briefing every demo document means one LLM call per file,
+    # sequentially - measured at 116s for 5 files, one call alone took 48s. The simulator
+    # never displays briefs, so there is nothing to trade off by skipping it.
+    #
+    # rebuild=False + a single rebuild_indexes() after the loop: rebuilding after each of
+    # 5 documents re-embeds every chunk seen so far, 5 times over - quadratic, and measured
+    # at 92s on its own even with briefs off. Both together take "Load sample corpus" from
+    # ~3 minutes to a few seconds.
+    paths = sorted(CORPUS_DIR.glob("*.md"))
     loaded = []
-    for path in sorted(CORPUS_DIR.glob("*.md")):
-        result = engine.ingest(title=path.name, text=path.read_text(encoding="utf-8"))
+    for path in paths:
+        result = engine.ingest(
+            title=path.name, text=path.read_text(encoding="utf-8"),
+            generate_brief=False, rebuild=False,
+        )
         loaded.append({
             "doc_id": result.doc_id,
             "title": result.title,
@@ -233,6 +248,7 @@ def seed_demo() -> dict:
             "pii_redacted": result.pii.total_redacted,
             "relations": result.graph.relations_added,
         })
+    engine.rebuild_indexes()
     snapshot = engine.graph.snapshot()
     return {
         "loaded": loaded,

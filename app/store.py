@@ -105,7 +105,17 @@ class Engine:
     # ------------------------------------------------------------------
     # Ingestion
     # ------------------------------------------------------------------
-    def ingest(self, title: str, text: str, generate_brief: bool = True) -> IngestResponse:
+    def ingest(
+        self, title: str, text: str, generate_brief: bool = True, rebuild: bool = True
+    ) -> IngestResponse:
+        """rebuild=False skips the index rebuild after this document.
+
+        Ingesting N documents in a loop with the default True rebuilds the flat indexes
+        N times, each time re-encoding every chunk seen so far - quadratic in N. Measured
+        at 92s to load 5 small demo documents, entirely from that redundant re-embedding.
+        Callers loading several documents at once should pass False and call
+        `rebuild_indexes()` once after the loop.
+        """
         start = time.perf_counter()
         with self.lock:
             doc_id = "doc_" + uuid.uuid4().hex[:8]
@@ -152,8 +162,10 @@ class Engine:
             self.documents[doc_id] = doc
 
             # 4. Rebuild flat indexes. O(n) rebuild is correct at this scale and avoids
-            #    a whole class of incremental-update bugs.
-            self._rebuild_indexes()
+            #    a whole class of incremental-update bugs - AS LONG AS it happens once per
+            #    batch, not once per document in a multi-document load. See rebuild_indexes().
+            if rebuild:
+                self._rebuild_indexes()
 
             # 5. Content brief.
             brief_md = ""
@@ -182,6 +194,12 @@ class Engine:
     def _rebuild_indexes(self) -> None:
         self.lexical_index = lexical.build_index(self.chunks)
         self.vector_index = self._vector_mod.build_index(self.chunks)
+
+    def rebuild_indexes(self) -> None:
+        """Public entry point for batch loaders: ingest(..., rebuild=False) N times,
+        then call this once so every chunk is embedded exactly once."""
+        with self.lock:
+            self._rebuild_indexes()
 
     # ------------------------------------------------------------------
     # Retrieval

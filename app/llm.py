@@ -44,6 +44,18 @@ ANSWER_TEMPLATE = (
     "Answer using only the passages above, with inline citations."
 )
 
+# Several models available on Groq are reasoning models that emit a chain of thought
+# before the answer - qwen3.6 puts it in <think> tags inside `content`. Left in place it
+# becomes part of the "answer", which wrecks every metric: groundedness collapses because
+# the reasoning is not in the context, and citation coverage collapses because reasoning
+# sentences carry no citations. Strip it before anything else sees the text.
+_THINK = re.compile(r"<think>.*?</think>\s*|<think>.*$", re.S | re.I)
+
+
+def strip_reasoning(text: str) -> str:
+    return _THINK.sub("", text or "").strip()
+
+
 _SENT = re.compile(r"(?<=[.!?])\s+")
 _WORD = re.compile(r"[A-Za-z][A-Za-z\-']+|\d+")
 _STOP = {
@@ -181,7 +193,7 @@ def generate(question: str, context_blocks: list[str]) -> Completion:
             top_p=1.0,
         )
         elapsed = (time.perf_counter() - start) * 1000
-        text = (response.choices[0].message.content or "").strip()
+        text = strip_reasoning(response.choices[0].message.content or "")
         usage = getattr(response, "usage", None)
         p_tok = int(getattr(usage, "prompt_tokens", 0) or _estimate_tokens(user_prompt))
         c_tok = int(getattr(usage, "completion_tokens", 0) or _estimate_tokens(text))
@@ -223,7 +235,7 @@ def complete_raw(system: str, user: str, max_tokens: int = 900) -> Completion:
             max_tokens=max_tokens,
         )
         elapsed = (time.perf_counter() - start) * 1000
-        text = (response.choices[0].message.content or "").strip()
+        text = strip_reasoning(response.choices[0].message.content or "")
         usage = getattr(response, "usage", None)
         p_tok = int(getattr(usage, "prompt_tokens", 0) or _estimate_tokens(user))
         c_tok = int(getattr(usage, "completion_tokens", 0) or _estimate_tokens(text))
