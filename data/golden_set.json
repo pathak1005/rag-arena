@@ -1,0 +1,143 @@
+{
+  "meta": {
+    "corpus": "data/demo_corpus",
+    "notes": "Stratified by retrieval failure mode, not by topic. Each bucket targets a specific weakness so a per-bucket score says something actionable. golden_chunks are matched by substring against chunk text, so they survive re-chunking - chunk ids do not.",
+    "buckets": {
+      "exact_identifier": "rare literal tokens; lexical should win",
+      "conceptual": "paraphrase with no shared vocabulary; vector should win",
+      "multi_hop": "answer spans documents; graph should win",
+      "conceptual_relational": "relational answer but no entity named in the question; hybrid_graph should win",
+      "unanswerable": "not in the corpus; every lane should abstain"
+    }
+  },
+  "items": [
+    {
+      "id": "ex-01",
+      "bucket": "exact_identifier",
+      "question": "What causes ERR-7741?",
+      "golden_answer": "The payments-gateway emits ERR-7741 when the card network returns a soft decline that the retry policy has already exhausted.",
+      "golden_chunks": ["ERR-7741 when the card network returns a soft decline"],
+      "expected_winner": "lexical"
+    },
+    {
+      "id": "ex-02",
+      "bucket": "exact_identifier",
+      "question": "Which service emits ERR-7827 and what is the first remediation?",
+      "golden_answer": "The ledger-service emits ERR-7827 when a required correlation header is absent. First remediation is to confirm the upstream status page, then release the held batch manually.",
+      "golden_chunks": ["ERR-7827 when a required correlation header is absent"],
+      "expected_winner": "lexical"
+    },
+    {
+      "id": "ex-03",
+      "bucket": "exact_identifier",
+      "question": "What is ERR-6015?",
+      "golden_answer": "The identity-broker emits ERR-6015 when a presented token has a valid signature but an issuer that is no longer trusted, causing an unexpected sign-out.",
+      "golden_chunks": ["ERR-6015 when a presented token has a valid signature"],
+      "expected_winner": "lexical"
+    },
+    {
+      "id": "ex-04",
+      "bucket": "exact_identifier",
+      "question": "What does ERR-9120 mean for the fraud-scorer?",
+      "golden_answer": "The fraud-scorer emits ERR-9120 when the feature-store lookup times out and the scorer falls back to the conservative default decision, raising false declines.",
+      "golden_chunks": ["ERR-9120 when the feature-store lookup times out"],
+      "expected_winner": "lexical"
+    },
+    {
+      "id": "co-01",
+      "bucket": "conceptual",
+      "question": "How do we stop customer data leaking into our logs?",
+      "golden_answer": "Suppression is applied at three points: a client-side filter at the emission site, a pattern-matching stage at the collector, and aggressive retention purging at rest. Each layer covers a different failure mode of the others.",
+      "golden_chunks": ["Suppression is applied at three points"],
+      "expected_winner": "vector"
+    },
+    {
+      "id": "co-02",
+      "bucket": "conceptual",
+      "question": "Why is defence in depth needed rather than just deleting old records?",
+      "golden_answer": "Each stage fails differently. Field-name filters miss values in unexpected fields, pattern matchers miss unfamiliar formats, and retention limits exposure duration but does nothing about who reads the record in the meantime.",
+      "golden_chunks": ["each layer covers a different failure mode"],
+      "expected_winner": "vector"
+    },
+    {
+      "id": "co-03",
+      "bucket": "conceptual",
+      "question": "How do we know if a privacy control silently regressed?",
+      "golden_answer": "A synthetic canary record carrying recognisable marker values is injected hourly into every emission path, and an alert fires if a marker is observed in any downstream tier.",
+      "golden_chunks": ["synthetic canary record carrying recognisable marker values"],
+      "expected_winner": "vector"
+    },
+    {
+      "id": "co-04",
+      "bucket": "conceptual",
+      "question": "Can an engineer get an exemption from the redaction rules?",
+      "golden_answer": "Approval to bypass any suppression stage requires written sign-off from the data governance council and is granted only for a fixed investigation window. Standing exemptions are never issued.",
+      "golden_chunks": ["written sign-off from the data governance council"],
+      "expected_winner": "vector"
+    },
+    {
+      "id": "mh-01",
+      "bucket": "multi_hop",
+      "question": "Who should I escalate to if checkout-api is failing because of a payment problem?",
+      "golden_answer": "checkout-api depends on payments-gateway, which is owned by Team Meridian, and Team Meridian escalates to Priya Raman, the payments domain lead.",
+      "golden_chunks": ["Meridian escalates to Priya Raman"],
+      "expected_winner": "graph"
+    },
+    {
+      "id": "mh-02",
+      "bucket": "multi_hop",
+      "question": "Which team owns the service that ledger-service depends on for storage?",
+      "golden_answer": "ledger-service depends on postgres-primary for durable storage and runs on the shared transactional cluster. ledger-service itself is owned by Team Borealis.",
+      "golden_chunks": ["ledger-service depends on postgres-primary"],
+      "expected_winner": "graph"
+    },
+    {
+      "id": "mh-03",
+      "bucket": "multi_hop",
+      "question": "If ledger-service goes down, which customer-facing service degrades and who owns it?",
+      "golden_answer": "An outage in ledger-service degrades payments-gateway, which in turn degrades checkout-api. checkout-api is owned by Team Aurora.",
+      "golden_chunks": ["outage in ledger-service degrades payments-gateway"],
+      "expected_winner": "graph"
+    },
+    {
+      "id": "mh-04",
+      "bucket": "multi_hop",
+      "question": "Which channel pages the team that owns payments-gateway?",
+      "golden_answer": "payments-gateway is owned by Team Meridian, and Team Meridian is paged via #meridian-oncall.",
+      "golden_chunks": ["Team Meridian is paged via #meridian-oncall"],
+      "expected_winner": "graph"
+    },
+    {
+      "id": "cr-01",
+      "bucket": "conceptual_relational",
+      "question": "Who do I contact when the checkout flow breaks during payment?",
+      "golden_answer": "checkout-api depends on payments-gateway, owned by Team Meridian, which escalates to Priya Raman.",
+      "golden_chunks": ["Meridian escalates to Priya Raman"],
+      "expected_winner": "hybrid_graph"
+    },
+    {
+      "id": "cr-02",
+      "bucket": "conceptual_relational",
+      "question": "Who is accountable when an incident crosses two teams?",
+      "golden_answer": "The incident commander is drawn from the team that owns the service closest to the customer, not the team that owns the failing dependency, and that team's escalation contact becomes the single point of accountability.",
+      "golden_chunks": ["incident commander is drawn from the team that owns the service closest to the customer"],
+      "expected_winner": "hybrid_graph"
+    },
+    {
+      "id": "un-01",
+      "bucket": "unanswerable",
+      "question": "What is the annual revenue of the Helios platform?",
+      "golden_answer": "The provided context does not contain this information.",
+      "golden_chunks": [],
+      "expected_winner": "any"
+    },
+    {
+      "id": "un-02",
+      "bucket": "unanswerable",
+      "question": "Which cloud provider hosts the identity-broker?",
+      "golden_answer": "The provided context does not contain this information.",
+      "golden_chunks": [],
+      "expected_winner": "any"
+    }
+  ]
+}

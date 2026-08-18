@@ -61,7 +61,10 @@ def _detect_identifiers(question: str) -> list[tuple[str, str]]:
 
 def route(question: str, seed_entities: list[str], graph_ready: bool = True) -> RoutingDecision:
     """Score each strategy from inspectable signals. seed_entities comes from GraphStore.link_query."""
-    scores = {Strategy.LEXICAL: 0.0, Strategy.VECTOR: 0.0, Strategy.GRAPH: 0.0, Strategy.HYBRID: 0.6}
+    scores = {
+        Strategy.LEXICAL: 0.0, Strategy.VECTOR: 0.0, Strategy.GRAPH: 0.0,
+        Strategy.HYBRID: 0.6, Strategy.HYBRID_GRAPH: 0.55,
+    }
     signals: list[RoutingSignal] = []
 
     # 1) Exact identifiers -> lexical
@@ -124,14 +127,18 @@ def route(question: str, seed_entities: list[str], graph_ready: bool = True) -> 
 
     if not graph_ready:
         scores[Strategy.GRAPH] = -99.0
+        scores[Strategy.HYBRID_GRAPH] = -99.0
 
     recommended = max(scores, key=lambda s: scores[s])
     ordered = sorted(scores.values(), reverse=True)
     margin = ordered[0] - ordered[1] if len(ordered) > 1 else ordered[0]
 
-    # Close call between two specialists -> fuse instead of guessing.
-    if margin < 0.5 and recommended is not Strategy.HYBRID:
-        recommended = Strategy.HYBRID
+    # Close call between two specialists -> combine instead of guessing.
+    # Prefer the sequential vector->graph pipeline when the corpus has a graph at all:
+    # it degrades to pure vector when traversal finds nothing, so it strictly dominates
+    # RRF fusion here. Fall back to RRF only when there is no graph to expand into.
+    if margin < 0.5 and recommended not in (Strategy.HYBRID, Strategy.HYBRID_GRAPH):
+        recommended = Strategy.HYBRID_GRAPH if graph_ready else Strategy.HYBRID
 
     confidence = max(0.25, min(0.98, 0.45 + margin / 6.0))
 
@@ -157,6 +164,14 @@ def route(question: str, seed_entities: list[str], graph_ready: bool = True) -> 
             "The query is phrased conceptually with no rare literals and no entity pair to traverse. "
             "The source wording is probably a paraphrase, which is precisely where term matching fails "
             "and dense similarity succeeds."
+        )
+    elif recommended is Strategy.HYBRID_GRAPH:
+        qclass = QueryClass.MIXED
+        rationale = (
+            "Signals are split (margin " + format(margin, ".2f") + "). Hybrid RAG runs vector "
+            "retrieval first to find semantically relevant passages, then traverses the graph "
+            "from the entities those passages name - so it does not depend on the question "
+            "naming an entity, and degrades to pure vector when traversal finds nothing."
         )
     else:
         qclass = QueryClass.MIXED

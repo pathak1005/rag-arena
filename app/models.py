@@ -16,6 +16,9 @@ class Strategy(str, Enum):
     VECTOR = "vector"
     GRAPH = "graph"
     HYBRID = "hybrid"
+    # Sequential vector -> graph pipeline (the enterprise-standard "Hybrid RAG"),
+    # distinct from HYBRID which fuses independent rankings via RRF.
+    HYBRID_GRAPH = "hybrid_graph"
 
 
 class QueryClass(str, Enum):
@@ -145,7 +148,10 @@ class RoutingDecision(BaseModel):
 class QueryCompareRequest(BaseModel):
     question: str = Field(..., min_length=3, max_length=1000)
     strategies: list[Strategy] = Field(
-        default_factory=lambda: [Strategy.LEXICAL, Strategy.VECTOR, Strategy.GRAPH, Strategy.HYBRID]
+        default_factory=lambda: [
+            Strategy.LEXICAL, Strategy.VECTOR, Strategy.GRAPH,
+            Strategy.HYBRID_GRAPH, Strategy.HYBRID,
+        ]
     )
     top_k: int = Field(3, ge=1, le=10)
     generate: bool = Field(True, description="Set false to benchmark retrieval only")

@@ -17,7 +17,12 @@ from typing import Literal
 
 import numpy as np
 
-from app.config import ALLOW_EMBED_DOWNLOAD, EMBED_MODEL
+from app.config import (
+    ALLOW_EMBED_DOWNLOAD,
+    EMBED_BATCH_SIZE,
+    EMBED_MODEL,
+    EMBED_THREADS,
+)
 
 log = logging.getLogger("rag.embed")
 
@@ -56,12 +61,19 @@ class Embedder:
         try:
             from fastembed import TextEmbedding  # type: ignore
 
-            self._fe = TextEmbedding(model_name=EMBED_MODEL)
+            # threads=1 is a memory decision, not a speed one. onnxruntime allocates a
+            # per-thread memory arena, and with the default thread count peak RSS during
+            # a bulk encode measured 470MB against 189MB single-threaded. On a small
+            # shared-CPU VM there is no parallelism to win anyway.
+            self._fe = TextEmbedding(model_name=EMBED_MODEL, threads=EMBED_THREADS)
             probe = list(self._fe.embed(["warmup"]))[0]
             self.dim = int(len(probe))
             self.mode = "fastembed"
             self.model_name = EMBED_MODEL
-            log.info("Embedder ready: %s (dim=%d)", EMBED_MODEL, self.dim)
+            log.info(
+                "Embedder ready: %s (dim=%d, threads=%d, batch=%d)",
+                EMBED_MODEL, self.dim, EMBED_THREADS, EMBED_BATCH_SIZE,
+            )
         except Exception as exc:  # noqa: BLE001 - any failure must degrade, not crash
             log.warning("fastembed unavailable (%s); falling back to TF-IDF/SVD.", exc)
             self._fe = None
@@ -121,7 +133,11 @@ class Embedder:
         if not texts:
             return np.zeros((0, self.dim), dtype=np.float32)
         if self.mode == "fastembed" and self._fe is not None:
-            vecs = np.asarray(list(self._fe.embed(texts)), dtype=np.float32)
+            # Explicit batch_size caps the transient activation buffers. Unbounded,
+            # a single bulk encode of the corpus was responsible for a 251MB spike.
+            vecs = np.asarray(
+                list(self._fe.embed(texts, batch_size=EMBED_BATCH_SIZE)), dtype=np.float32
+            )
             return vecs / np.clip(np.linalg.norm(vecs, axis=1, keepdims=True), 1e-9, None)
         return self._fallback_embed(texts)
 

@@ -1,0 +1,54 @@
+# Two-app split, app 1 of 2: API only.
+#
+# Deploy:  fly deploy -c deploy/fly.api.toml
+#
+# Fits 256 MB ONLY with the TF-IDF embedder (measured 93 MB peak). With fastembed the
+# API alone peaks at 288 MB and will OOM - set memory = "512mb" if you want semantic
+# embeddings, and accept it is no longer free.
+#
+# The tradeoff is real and worth stating in the README: TF-IDF/LSA is measurably worse
+# at paraphrase matching, which is exactly the case the vector lane exists to win.
+
+app = "rag-arena-api"
+primary_region = "sin"
+
+[build]
+  dockerfile = "Dockerfile"
+  [build.args]
+    LEAN = "1"
+    PREFETCH_MODEL = "0"    # no model needed when running the TF-IDF path
+
+[env]
+  API_PORT = "8080"
+  UI_ENABLED = "0"          # start.sh skips Streamlit entirely
+  ALLOW_EMBED_DOWNLOAD = "0"   # <- TF-IDF path; set to "1" only with 512mb below
+  GRAPH_BACKEND = "networkx"
+  VECTOR_BACKEND = "numpy"
+  EMBED_THREADS = "1"
+  EMBED_BATCH_SIZE = "4"
+  MALLOC_ARENA_MAX = "2"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "suspend"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 20
+    hard_limit = 40
+
+[checks.api]
+  type = "http"
+  port = 8080
+  method = "GET"
+  path = "/health"
+  interval = "30s"
+  timeout = "5s"
+  grace_period = "40s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

@@ -30,6 +30,13 @@ RRF_K = 60  # standard Reciprocal Rank Fusion damping constant
 EMBED_MODEL = os.getenv("EMBED_MODEL", "BAAI/bge-small-en-v1.5")
 ALLOW_EMBED_DOWNLOAD = os.getenv("ALLOW_EMBED_DOWNLOAD", "1") == "1"
 
+# Memory knobs, not speed knobs. onnxruntime allocates a memory arena per thread;
+# measured peak RSS on a bulk encode was 470MB at default threads vs 189MB at 1.
+# Batching bounds the transient activation buffers. Both matter far more than
+# throughput on a small shared-CPU VM.
+EMBED_THREADS = int(os.getenv("EMBED_THREADS", "1"))
+EMBED_BATCH_SIZE = int(os.getenv("EMBED_BATCH_SIZE", "8"))
+
 # --- Governance ------------------------------------------------------------
 PII_ENABLED = os.getenv("PII_ENABLED", "1") == "1"
 

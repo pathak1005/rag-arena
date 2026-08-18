@@ -45,6 +45,7 @@ from app.models import (
 from app.retrieval import lexical, vector
 from app.retrieval.fusion import reciprocal_rank_fusion
 from app.retrieval.graph import GraphStore, extract_mentions, extract_triples, retrieve_graph
+from app.retrieval.hybrid_graph import retrieve_hybrid_graph
 from app.retrieval.router import route
 
 log = logging.getLogger("rag.store")
@@ -197,6 +198,11 @@ class Engine:
             )
         elif strategy is Strategy.GRAPH:
             sources, trace = retrieve_graph(self.graph, question, self.chunks, top_k, GRAPH_MAX_HOPS)
+        elif strategy is Strategy.HYBRID_GRAPH:
+            sources, trace = retrieve_hybrid_graph(
+                self._vector_mod, self.vector_index, self.graph,
+                question, self.chunks, top_k, GRAPH_MAX_HOPS,
+            )
         elif strategy is Strategy.HYBRID:
             lex, _ = lexical.retrieve_lexical(self.lexical_index, question, self.chunks, top_k * 2)
             vec, _ = self._vector_mod.retrieve_vector(

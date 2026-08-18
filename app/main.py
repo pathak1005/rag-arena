@@ -11,7 +11,8 @@ import time
 import uuid
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, File, HTTPException, Query, Request, UploadFile
+from fastapi import Depends, FastAPI, File, HTTPException, Query, Request, UploadFile
+from fastapi.security import APIKeyHeader
 from fastapi.responses import JSONResponse, PlainTextResponse
 
 from app.config import CORPUS_DIR, GROQ_MODEL, TOP_K
@@ -35,6 +36,7 @@ from app.models import (
     ReadinessRequest,
     Strategy,
 )
+from app.security import AUTH_ENABLED, require_api_key
 from app.store import get_engine
 
 logging.basicConfig(
@@ -65,7 +67,14 @@ async def lifespan(app: FastAPI):
         close()
 
 
+api_key_scheme = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+# One dependency applied at the router level rather than decorating 18 endpoints
+# individually - a new endpoint is then protected by default rather than by memory.
+PROTECTED = [Depends(require_api_key), Depends(api_key_scheme)] if AUTH_ENABLED else []
+
 app = FastAPI(
+    dependencies=PROTECTED,
     title="Enterprise RAG Architecture & Governance Engine",
     version=VERSION,
     description=(
@@ -393,4 +402,5 @@ def root() -> dict:
         "docs": "/docs",
         "strategies": [s.value for s in Strategy],
         "default_top_k": TOP_K,
+        "auth_required": AUTH_ENABLED,
     }

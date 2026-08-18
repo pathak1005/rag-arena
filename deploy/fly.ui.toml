@@ -1,0 +1,50 @@
+# Two-app split, app 2 of 2: Streamlit UI only.
+#
+# Deploy:  fly deploy -c deploy/fly.ui.toml
+#
+# Point it at the API app over Fly's private network (.internal resolves inside the
+# organisation and never traverses the public internet):
+#
+#   fly secrets set -a rag-arena-ui API_BASE="http://rag-arena-api.internal:8080"
+#
+# Streamlit measured 130-200 MB, so 256 MB is workable but has little headroom. If the
+# UI OOMs under concurrent viewers, this is the app to move to 512 MB, not the API.
+
+app = "rag-arena-ui"
+primary_region = "sin"
+
+[build]
+  dockerfile = "Dockerfile"
+  [build.args]
+    LEAN = "1"
+    PREFETCH_MODEL = "0"    # the UI never embeds anything - it is a pure HTTP client
+
+[env]
+  PORT = "8501"
+  API_ENABLED = "0"         # start.sh skips uvicorn entirely
+  # API_BASE is injected via fly secrets, not committed here.
+
+[http_service]
+  internal_port = 8501
+  force_https = true
+  auto_stop_machines = "suspend"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 10
+    hard_limit = 25
+
+[checks.ui]
+  type = "http"
+  port = 8501
+  method = "GET"
+  path = "/_stcore/health"
+  interval = "30s"
+  timeout = "5s"
+  grace_period = "40s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
