@@ -46,7 +46,12 @@ st.markdown("""
     html, body, .stApp { background-color: #1a1e24; color: #e8e6e1; }
     .stTabs [data-baseweb="tab-list"] { gap: 8px; border-bottom: 1px solid #383e48; }
     .stTabs [data-baseweb="tab"] { padding: 12px 24px; color: #9aa0ab; font-weight: 500; }
-    .stTabs [aria-selected="true"] { color: #d4af37; border-bottom: 2px solid #d4af37; }
+    .stTabs [data-baseweb="tab"] { background-color: transparent !important; }
+    .stTabs [aria-selected="true"] {
+        background-color: transparent !important;
+        color: #d4af37 !important;
+        border-bottom: 2px solid #d4af37 !important;
+    }
     .card { background: #262b33; border-left: 3px solid #d4af37; padding: 20px; border-radius: 8px; margin: 12px 0; }
     .pill {
         display: inline-block; background: #262b33; border: 1px solid #383e48;
