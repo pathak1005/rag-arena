@@ -43,23 +43,23 @@ st.set_page_config(
 st.markdown("""
 <style>
     * { color-scheme: dark; }
-    html, body, .stApp { background-color: #0A0E27; color: #F0F0F0; }
-    .stTabs [data-baseweb="tab-list"] { gap: 8px; border-bottom: 1px solid #334155; }
-    .stTabs [data-baseweb="tab"] { padding: 12px 24px; color: #94a3b8; font-weight: 500; }
-    .stTabs [aria-selected="true"] { color: #00D9FF; border-bottom: 2px solid #00D9FF; }
-    .card { background: #1A1F3A; border-left: 3px solid #00D9FF; padding: 20px; border-radius: 8px; margin: 12px 0; }
+    html, body, .stApp { background-color: #1a1e24; color: #e8e6e1; }
+    .stTabs [data-baseweb="tab-list"] { gap: 8px; border-bottom: 1px solid #383e48; }
+    .stTabs [data-baseweb="tab"] { padding: 12px 24px; color: #9aa0ab; font-weight: 500; }
+    .stTabs [aria-selected="true"] { color: #d4af37; border-bottom: 2px solid #d4af37; }
+    .card { background: #262b33; border-left: 3px solid #d4af37; padding: 20px; border-radius: 8px; margin: 12px 0; }
     .pill {
-        display: inline-block; background: #1A1F3A; border: 1px solid #334155;
-        color: #cbd5e1; padding: 4px 12px; border-radius: 999px; font-size: 0.82rem;
+        display: inline-block; background: #262b33; border: 1px solid #383e48;
+        color: #9aa0ab; padding: 4px 12px; border-radius: 999px; font-size: 0.82rem;
         margin: 3px; white-space: nowrap;
     }
-    .answer-box { background: #10162E; border: 1px solid #00D9FF44; padding: 18px 20px; border-radius: 10px; margin: 12px 0; }
+    .answer-box { background: #22262e; border: 1px solid #d4af3744; padding: 18px 20px; border-radius: 10px; margin: 12px 0; }
     .print-btn-icon {
-        background: #1A1F3A; border: 1px solid #334155; color: #F0F0F0;
+        background: #262b33; border: 1px solid #383e48; color: #e8e6e1;
         padding: 6px 14px; border-radius: 8px; font-size: 0.9rem; cursor: pointer;
         float: right; margin-top: 44px;
     }
-    .print-btn-icon:hover { border-color: #00D9FF; color: #00D9FF; }
+    .print-btn-icon:hover { border-color: #d4af37; color: #d4af37; }
 
     /* Native st.button() elements (top nav, Home reference links) don't reliably
        inherit page-level colors - their background/text come from Streamlit's own
@@ -67,23 +67,23 @@ st.markdown("""
        (e.g. light text on a light background) regardless of the page theme. */
     div[data-testid="stButton"] button,
     button[kind="secondary"] {
-        background-color: #1A1F3A !important;
-        color: #F0F0F0 !important;
-        border: 1px solid #334155 !important;
+        background-color: #262b33 !important;
+        color: #e8e6e1 !important;
+        border: 1px solid #383e48 !important;
     }
     div[data-testid="stButton"] button:hover,
     button[kind="secondary"]:hover {
-        border-color: #00D9FF !important;
-        color: #00D9FF !important;
+        border-color: #d4af37 !important;
+        color: #d4af37 !important;
     }
     button[kind="primary"] {
-        background-color: #00D9FF !important;
-        color: #0A0E27 !important;
-        border: 1px solid #00D9FF !important;
+        background-color: #d4af37 !important;
+        color: #1a1e24 !important;
+        border: 1px solid #d4af37 !important;
         font-weight: 700 !important;
     }
     button[kind="primary"]:hover {
-        background-color: #33e3ff !important;
+        background-color: #f5b041 !important;
     }
 
     @media print {
@@ -155,13 +155,13 @@ with hero_col:
     st.markdown(f"""
     <div style='text-align: center; padding: 40px 0 20px 0;'>
         <h1 style='font-size: 3.2rem; font-weight: 800;
-                   background: linear-gradient(135deg, #00D9FF, #FF006E);
+                   background: linear-gradient(135deg, #d4af37, #f5b041);
                    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
                    margin-bottom: 8px;'>
             {name}
         </h1>
-        <p style='font-size: 1.15rem; color: #cbd5e1; margin-bottom: 18px;'>{headline}</p>
-        <p style='font-size: 1.05rem; color: #94a3b8; max-width: 760px; margin: 0 auto; line-height: 1.6;'>
+        <p style='font-size: 1.15rem; color: #9aa0ab; margin-bottom: 18px;'>{headline}</p>
+        <p style='font-size: 1.05rem; color: #9aa0ab; max-width: 760px; margin: 0 auto; line-height: 1.6;'>
             {tagline}
         </p>
     </div>
@@ -452,7 +452,7 @@ elif active == "Playground":
     # --- SPEC INSPECTOR: identical facts, two documentation qualities ---
     with pg_spec:
         st.markdown(
-            "<span style='background:#334155;color:#e2e8f0;padding:2px 10px;"
+            "<span style='background:#383e48;color:#e8e6e1;padding:2px 10px;"
             "border-radius:999px;font-size:0.75rem;font-weight:600;'>ALPHA &middot; WORK IN PROGRESS</span>",
             unsafe_allow_html=True,
         )
