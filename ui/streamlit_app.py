@@ -421,11 +421,16 @@ elif active == "Playground":
         st.caption(f"**Writing tip:** {info['tip']}")
 
     pg_spec, pg_format = st.tabs(
-        ["🔍 Spec Inspector", "🔄 Format Converter"]
+        ["🔍 Spec Inspector (alpha)", "🔄 Format Converter"]
     )
 
     # --- SPEC INSPECTOR: identical facts, two documentation qualities ---
     with pg_spec:
+        st.markdown(
+            "<span style='background:#334155;color:#e2e8f0;padding:2px 10px;"
+            "border-radius:999px;font-size:0.75rem;font-weight:600;'>ALPHA &middot; WORK IN PROGRESS</span>",
+            unsafe_allow_html=True,
+        )
         st.markdown("### The Same Facts, Two Documentation Qualities")
         st.markdown(
             "Both panels below describe the exact same API response. The left is written the "
