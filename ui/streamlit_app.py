@@ -1,5 +1,5 @@
 """
-Ashish Pathak – Knowledge Architect Portfolio.
+Ashish Pathak - Knowledge Architect Portfolio.
 
 Single-file Streamlit app. Dark theme, tabbed navigation.
 Content is pulled from data/portfolio.json (real resume/profile data) and
@@ -8,20 +8,36 @@ for demo queries) so every number and answer on this page is grounded in
 real text, not placeholder randomness.
 """
 import json
+import os
 import re
 from pathlib import Path
 
+import requests
 import streamlit as st
 
 ROOT = Path(__file__).resolve().parent.parent
 CALENDLY = "https://calendly.com/ashishpathak1005/30min"
 RESUME_GDOC = "https://docs.google.com/document/d/1O_qtvSQNI3hy35Qri0OZEOMfCcFr8I3l"
+API_BASE = os.getenv("API_BASE", "http://127.0.0.1:8000")
+
+_EM_DASH, _EN_DASH = "—", "–"
+
+
+def declutter(text):
+    """Replace em/en dashes used as word-substitutes with plain punctuation."""
+    if isinstance(text, str):
+        return text.replace(" " + _EM_DASH + " ", ", ").replace(_EM_DASH, ", ").replace(_EN_DASH, "-")
+    if isinstance(text, list):
+        return [declutter(v) for v in text]
+    if isinstance(text, dict):
+        return {k: declutter(v) for k, v in text.items()}
+    return text
 
 # ============================================================================
 # CONFIG & THEME
 # ============================================================================
 st.set_page_config(
-    page_title="Ashish Pathak – Knowledge Architect",
+    page_title="Ashish Pathak - Knowledge Architect",
     page_icon="🧠",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -41,15 +57,15 @@ st.markdown("""
         margin: 3px; white-space: nowrap;
     }
     .answer-box { background: #10162E; border: 1px solid #00D9FF44; padding: 18px 20px; border-radius: 10px; margin: 12px 0; }
-    .print-btn {
+    .print-btn-icon {
         background: #1A1F3A; border: 1px solid #334155; color: #F0F0F0;
-        padding: 8px 16px; border-radius: 8px; font-size: 0.95rem; cursor: pointer;
-        width: 100%; margin-top: 4px;
+        padding: 6px 14px; border-radius: 8px; font-size: 0.9rem; cursor: pointer;
+        float: right; margin-top: 44px;
     }
-    .print-btn:hover { border-color: #00D9FF; color: #00D9FF; }
+    .print-btn-icon:hover { border-color: #00D9FF; color: #00D9FF; }
 
     @media print {
-        .stTabs [data-baseweb="tab-list"], .print-btn, button { display: none !important; }
+        .stTabs [data-baseweb="tab-list"], .print-btn-icon, button { display: none !important; }
         html, body, .stApp { background: white !important; color: black !important; }
     }
 </style>
@@ -83,21 +99,12 @@ def load_corpus() -> list[dict]:
     return chunks
 
 
-PORTFOLIO = load_portfolio()
+PORTFOLIO = declutter(load_portfolio())
 CORPUS = load_corpus()
 PROFILE = PORTFOLIO.get("profile", {})
 
-
-def render_resume_actions(use_container_width: bool = True) -> None:
-    """View (Google Doc) + browser print — used on both Welcome and About."""
-    st.link_button("📄 View Resume", RESUME_GDOC, use_container_width=use_container_width)
-    st.markdown(
-        "<button class='print-btn' onclick='window.print()'>🖨️ Print this page</button>",
-        unsafe_allow_html=True,
-    )
-
 # ============================================================================
-# RETRIEVAL / SCORING HELPERS (deterministic, driven by real input — not random)
+# RETRIEVAL / SCORING HELPERS (deterministic, driven by real input, not random)
 # ============================================================================
 _STOP = {
     "the", "a", "an", "and", "or", "of", "to", "in", "is", "are", "for", "on", "with",
@@ -176,7 +183,7 @@ def synthesize_answer(query: str, sources: list[dict]) -> str:
 
 
 def evaluate_response(response: str, context: str, query: str) -> dict:
-    """Deterministic metrics from actual text overlap — changes when the input changes."""
+    """Deterministic metrics from actual text overlap, changes when the input changes."""
     resp_words = _keywords(response)
     ctx_words = _keywords(context)
     q_words = _keywords(query)
@@ -238,20 +245,27 @@ headline = PROFILE.get("headline", "Knowledge Architect")
 summary_paras = [p for p in PROFILE.get("summary", "").split("\n\n") if p.strip()]
 tagline = summary_paras[0] if summary_paras else "I engineer wisdom for humans and machines."
 
-st.markdown(f"""
-<div style='text-align: center; padding: 40px 0 20px 0;'>
-    <h1 style='font-size: 3.2rem; font-weight: 800;
-               background: linear-gradient(135deg, #00D9FF, #FF006E);
-               -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-               margin-bottom: 8px;'>
-        {name}
-    </h1>
-    <p style='font-size: 1.15rem; color: #cbd5e1; margin-bottom: 18px;'>{headline}</p>
-    <p style='font-size: 1.05rem; color: #94a3b8; max-width: 760px; margin: 0 auto; line-height: 1.6;'>
-        {tagline}
-    </p>
-</div>
-""", unsafe_allow_html=True)
+hero_col, print_col = st.columns([8, 1])
+with hero_col:
+    st.markdown(f"""
+    <div style='text-align: center; padding: 40px 0 20px 0;'>
+        <h1 style='font-size: 3.2rem; font-weight: 800;
+                   background: linear-gradient(135deg, #00D9FF, #FF006E);
+                   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+                   margin-bottom: 8px;'>
+            {name}
+        </h1>
+        <p style='font-size: 1.15rem; color: #cbd5e1; margin-bottom: 18px;'>{headline}</p>
+        <p style='font-size: 1.05rem; color: #94a3b8; max-width: 760px; margin: 0 auto; line-height: 1.6;'>
+            {tagline}
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+with print_col:
+    st.markdown(
+        "<button class='print-btn-icon' onclick='window.print()'>🖨️ Print</button>",
+        unsafe_allow_html=True,
+    )
 
 st.markdown("---")
 
@@ -259,29 +273,29 @@ st.markdown("---")
 # MAIN NAVIGATION
 # ============================================================================
 tab_home, tab_about, tab_work, tab_playground = st.tabs(
-    ["🏠 Welcome", "👤 About", "💼 Work", "🎮 Playground"]
+    ["🏠 Home", "👤 About", "💼 Work", "🎮 Playground"]
 )
 
-# ---- TAB: WELCOME ----
+# ---- TAB: HOME ----
 with tab_home:
     col1, col2 = st.columns([1.5, 1])
 
     with col1:
-        st.markdown("### Welcome")
+        st.markdown("### Summary")
         for para in summary_paras[1:]:
             st.markdown(para)
 
         st.markdown("")
         st.markdown("**Where to go from here:**")
         st.markdown(
-            "- **About** — full experience, skills, education, certifications\n"
-            "- **Work** — real projects, with links\n"
-            "- **Playground** — try the retrieval strategies live, on the actual sample corpus"
+            "- **About** - full experience, skills, education, certifications\n"
+            "- **Work** - real projects, with links\n"
+            "- **Playground** - try the retrieval strategies live, on the actual sample corpus"
         )
 
     with col2:
-        st.markdown("### Get the Resume")
-        render_resume_actions()
+        st.markdown("### Resume & Contact")
+        st.link_button("📄 View Resume", RESUME_GDOC, use_container_width=True)
         col_a, col_b = st.columns(2)
         with col_a:
             st.link_button("📧 Email", f"mailto:{PROFILE.get('email', 'ashishpathak1005@gmail.com')}", use_container_width=True)
@@ -297,21 +311,13 @@ with tab_about:
     st.markdown("### Professional Summary")
     for para in summary_paras:
         st.markdown(para)
-
-    col_r1, col_r2, _ = st.columns([1, 1, 2])
-    with col_r1:
-        st.link_button("📄 View Resume", RESUME_GDOC, use_container_width=True)
-    with col_r2:
-        st.markdown(
-            "<button class='print-btn' onclick='window.print()'>🖨️ Print this page</button>",
-            unsafe_allow_html=True,
-        )
+    st.link_button("📄 View Resume", RESUME_GDOC)
 
     st.markdown("---")
     st.markdown("### Experience")
     experience = PORTFOLIO.get("experience", [])
     for i, job in enumerate(experience):
-        with st.expander(f"**{job['title']}** — {job['company']} ({job['period']})", expanded=(i == 0)):
+        with st.expander(f"{job['title']} - {job['company']} ({job['period']})", expanded=(i == 0)):
             for h in job.get("highlights", []):
                 st.markdown(f"- {h}")
 
@@ -352,14 +358,32 @@ with tab_work:
                     st.caption(project["period"])
                 st.markdown(project.get("summary", ""))
                 if project.get("link"):
-                    st.link_button("View →", project["link"], use_container_width=True)
+                    st.link_button("View", project["link"], use_container_width=True)
+
+    st.markdown("---")
+    st.markdown("### Public Repositories")
+    st.caption("From github.com/pathak1005")
+
+    public_repos = [
+        {"name": "Sphinx-API-Documentation-", "desc": "Sphinx documentation framework used for API documentation.", "url": "https://github.com/pathak1005/Sphinx-API-Documentation-"},
+        {"name": "Sample-Docsite", "desc": "A sample documentation site build.", "url": "https://github.com/pathak1005/Sample-Docsite"},
+        {"name": "sentimentanalysis", "desc": "Script for sentiment analysis of a text.", "url": "https://github.com/pathak1005/sentimentanalysis"},
+    ]
+
+    cols = st.columns(len(public_repos))
+    for col, repo in zip(cols, public_repos):
+        with col:
+            with st.container(border=True):
+                st.markdown(f"**{repo['name']}**")
+                st.caption(repo["desc"])
+                st.link_button("View on GitHub", repo["url"], use_container_width=True)
 
 # ---- TAB: PLAYGROUND ----
 with tab_playground:
     st.markdown("### Interactive RAG Demonstrations")
     st.markdown(
         f"All demos run against the same {len(CORPUS)}-chunk sample corpus the live API seeds for "
-        "`/seed_demo` — a fictional platform called **Helios** with services, on-call escalation, and "
+        "`/seed_demo`, a fictional platform called **Helios** with services, on-call escalation, and "
         "error codes. Nothing here calls a network endpoint; retrieval and scoring run in the page itself, "
         "so results are instant and reproducible."
     )
@@ -368,50 +392,63 @@ with tab_playground:
         ["🔍 Spec Inspector", "💬 RAG Chat", "📊 Prompt Evaluator", "🔄 Format Converter"]
     )
 
-    # --- SPEC INSPECTOR: generic dev response vs Ashish's response, for the same query ---
+    # --- SPEC INSPECTOR: identical facts, two documentation qualities ---
     with pg_spec:
-        st.markdown("### The Same Response, Two Ways")
+        st.markdown("### The Same Facts, Two Documentation Qualities")
         st.markdown(
-            "Most API docs stop at the status code. Here's the difference between a response "
-            "documented the ordinary way, and one documented so the *next engineer* — human or "
-            "agent — knows what to do with it."
+            "Both panels below describe the exact same API response. The left is written the "
+            "way most API docs are written: technically correct, minimal effort. The right is "
+            "the same facts, written so the next engineer knows what to actually do."
         )
 
         sample_queries = {
             "Who owns checkout-api?": {
                 "endpoint": "POST /retrieve",
                 "request": '{"query": "Who owns checkout-api?", "strategy": "graph"}',
-                "raw_response": '{"results": [{"score": 0.94, "text": "checkout-api owned by Team Aurora"}], "status": 200}',
-                "ashish_response": (
-                    "**200 OK — but read what that means here.** The graph strategy walked "
-                    "checkout-api → owned_by → Team Aurora in one hop, score 0.94 (high confidence, "
-                    "direct relationship, not inferred). If this had returned **200 with an empty "
-                    "results list**, that would mean the entity 'checkout-api' isn't in the graph yet — "
-                    "not that the answer is 'no owner'. Empty ≠ negative; empty means *ask a different "
-                    "strategy or check ingestion*."
+                "response": '{"results": [{"score": 0.94, "text": "checkout-api owned by Team Aurora"}], "status": 200}',
+                "standard_doc": (
+                    "**200 OK.** Returns a `results` array with matched entities and a relevance "
+                    "`score` between 0 and 1. An empty array means no results were found."
+                ),
+                "ashish_doc": (
+                    "**200 OK, score 0.94.** The graph strategy found this in one hop "
+                    "(checkout-api to owned_by to Team Aurora), which is why the score is high: "
+                    "it's a direct relationship, not an inference across multiple hops. "
+                    "If `results` had come back empty, that means the entity 'checkout-api' isn't "
+                    "in the graph yet, not that it has no owner. Empty is not the same as negative: "
+                    "when you see it, check ingestion or try a different strategy before concluding "
+                    "the answer is 'no owner'."
                 ),
             },
             "What triggers ERR-7741?": {
                 "endpoint": "POST /retrieve",
                 "request": '{"query": "What triggers ERR-7741?", "strategy": "lexical"}',
-                "raw_response": '{"results": [{"score": 0.88, "text": "payments-gateway emits ERR-7741..."}], "status": 200}',
-                "ashish_response": (
-                    "**200 OK, lexical strategy, score 0.88.** This won on exact-token match — "
-                    "'ERR-7741' is a rare, specific string, so BM25 found it directly. If you'd asked "
-                    "the *semantic* version of this question ('why do checkout payments fail with a "
-                    "soft decline'), lexical would likely score near zero here because there's no token "
-                    "overlap — that's the case for trying vector next, not assuming the answer doesn't exist."
+                "response": '{"results": [{"score": 0.88, "text": "payments-gateway emits ERR-7741..."}], "status": 200}',
+                "standard_doc": (
+                    "**200 OK, score 0.88.** The lexical strategy uses keyword matching (BM25) to "
+                    "rank results by term overlap with the query."
+                ),
+                "ashish_doc": (
+                    "**200 OK, lexical strategy, score 0.88.** This won because 'ERR-7741' is a "
+                    "rare, exact token, and lexical search is built for exactly that: token overlap, "
+                    "not meaning. If you rephrase the same question without the error code (say, "
+                    "'why do checkout payments fail with a soft decline'), lexical will likely score "
+                    "near zero here, since there is no token overlap anymore. That's the signal to "
+                    "try vector or graph next, not proof the answer stopped existing."
                 ),
             },
             "How do I download the eval report?": {
                 "endpoint": "GET /evaluate/report",
                 "request": '{"format": "csv"}',
-                "raw_response": '{"status": 200, "content_type": "text/csv"}',
-                "ashish_response": (
-                    "**200 with `content_type: text/csv` means the browser will download a file, "
-                    "not render JSON.** If your client library shows you `200` and then errors trying "
-                    "to `.json()` it, that's expected — check `content_type` before you parse. A 200 "
-                    "isn't one thing; what you do next depends on what's actually in the body."
+                "response": '{"status": 200, "content_type": "text/csv"}',
+                "standard_doc": (
+                    "**200 OK.** Returns the evaluation report. Set `format` to `csv` or `json`."
+                ),
+                "ashish_doc": (
+                    "**200 OK, `content_type: text/csv`.** That content type means the response "
+                    "body is a file download, not JSON, so calling `.json()` on it will throw. Check "
+                    "`content_type` before you decide how to parse the body: a 200 status code alone "
+                    "does not tell you what shape the response is in."
                 ),
             },
         }
@@ -421,24 +458,26 @@ with tab_playground:
 
         st.markdown(f"**{spec['endpoint']}**")
         st.code(spec["request"], language="json")
+        st.markdown("**Response**")
+        st.code(spec["response"], language="json")
 
         col1, col2 = st.columns(2)
         with col1:
-            st.markdown("#### What most docs give you")
-            st.code(spec["raw_response"], language="json")
-            st.caption("Technically correct. Tells you nothing about what to do next.")
+            st.markdown("#### Standard practice")
+            st.markdown(f"<div class='card'>{spec['standard_doc']}</div>", unsafe_allow_html=True)
+            st.caption("Technically accurate. Tells you the shape, not what to do next.")
         with col2:
-            st.markdown("#### What I write instead")
-            st.markdown(f"<div class='card'>{spec['ashish_response']}</div>", unsafe_allow_html=True)
+            st.markdown("#### What I write")
+            st.markdown(f"<div class='card'>{spec['ashish_doc']}</div>", unsafe_allow_html=True)
 
-    # --- RAG CHAT: real retrieval + real synthesized answer ---
+    # --- RAG CHAT: tries the live Groq-backed API first, falls back to local simulation ---
     with pg_chat:
         st.markdown("### Ask the Helios Corpus")
         st.info(
-            "🧪 **No upload needed to try this.** It runs against a fixed test corpus — "
+            "🧪 **No upload needed to try this.** It queries a fixed test corpus, "
             f"{len(CORPUS)} chunks from a fictional platform called Helios (services, on-call "
-            "escalation, error codes) — the same sample data the live API seeds. Pick an example "
-            "question below to see it work, then edit or replace it with anything you want to ask."
+            "escalation, error codes). Pick an example question below, then edit or replace it "
+            "with anything you want to ask."
         )
 
         example_questions = [
@@ -447,55 +486,117 @@ with tab_playground:
             "Who do I escalate a payments outage to?",
             "What happens when the fraud-scorer's feature-store lookup times out?",
         ]
+        PLACEHOLDER = "Pick an example, or skip and type your own below"
 
         if "chat_query" not in st.session_state:
             st.session_state.chat_query = example_questions[0]
 
         def _apply_example():
             choice = st.session_state.chat_example_select
-            if choice != "— pick an example, or skip and type your own below —":
+            if choice != PLACEHOLDER:
                 st.session_state.chat_query = choice
 
         st.selectbox(
             "Example questions:",
-            ["— pick an example, or skip and type your own below —"] + example_questions,
+            [PLACEHOLDER] + example_questions,
             key="chat_example_select",
             on_change=_apply_example,
         )
 
         query = st.text_input("Your question (editable):", key="chat_query")
 
+        @st.cache_data(ttl=60, show_spinner=False)
+        def call_live_chat(question: str):
+            """Real call to the FastAPI + Groq backend. Short timeouts so a dead backend
+            degrades to the local simulation instead of hanging the page."""
+            try:
+                health = requests.get(f"{API_BASE}/health", timeout=5)
+                if health.status_code != 200:
+                    return None, "backend unhealthy"
+
+                # n_documents > 0 isn't enough: the index might hold an unrelated
+                # uploaded doc, not the Helios corpus these questions are about.
+                docs = requests.get(f"{API_BASE}/documents", timeout=5).json()
+                has_helios = any(
+                    doc_stem in (d.get("title") or "").lower()
+                    for d in docs
+                    for doc_stem in ("service_catalog", "dependency_map", "oncall_escalation",
+                                      "error_code_reference", "telemetry_privacy")
+                )
+                if not has_helios:
+                    seeded = requests.post(f"{API_BASE}/seed_demo", timeout=30)
+                    if seeded.status_code != 200:
+                        return None, "seed failed"
+
+                resp = requests.post(
+                    f"{API_BASE}/chat", json={"question": question, "top_k": 5}, timeout=15
+                )
+                if resp.status_code == 200:
+                    return resp.json(), None
+                return None, f"status {resp.status_code}"
+            except requests.exceptions.RequestException as exc:
+                return None, str(exc)
+
         if query.strip():
-            strategies = ["lexical", "vector", "graph", "hybrid"]
-            results = {s: retrieve(query, s, k=3) for s in strategies}
+            with st.spinner("Asking the live backend..."):
+                live, live_error = call_live_chat(query)
 
-            # Generation is shared across strategies — same architecture as the live backend.
-            best_sources = results["hybrid"] or results["graph"] or results["vector"] or results["lexical"]
-            answer = synthesize_answer(query, best_sources)
+            if live:
+                result = live["result"]
+                st.success(
+                    f"🟢 Live answer from the deployed backend"
+                    + (" (extractive fallback, LLM unavailable)" if result.get("degraded") else " (Groq-generated)")
+                )
+                st.markdown("#### Answer")
+                st.markdown(f"<div class='answer-box'>{result['answer']}</div>", unsafe_allow_html=True)
 
-            st.markdown("#### Answer")
-            st.markdown(f"<div class='answer-box'>{answer}</div>", unsafe_allow_html=True)
-            if best_sources:
-                with st.expander("Cited sources"):
-                    for i, src in enumerate(best_sources, 1):
-                        st.caption(f"[{i}] {src['doc']}: {src['text']}")
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Strategy used", live["routing"]["recommended"])
+                with col2:
+                    st.metric("Latency", f"{result['latency_ms']:.0f}ms")
+                with col3:
+                    st.metric("Groundedness", f"{result['metrics'].get('groundedness', 0):.0%}")
+
+                if result.get("sources"):
+                    with st.expander("Cited sources"):
+                        for i, src in enumerate(result["sources"], 1):
+                            st.caption(f"[{i}] {src.get('doc_title', '')}: {src['text']}")
             else:
-                st.info("No chunk in the corpus overlaps with this query — try one of the suggestions above.")
+                st.warning(
+                    f"⚪ Backend unreachable right now ({live_error}). Showing the local, "
+                    "no-network simulation instead, same corpus, keyword-overlap scoring."
+                )
+                strategies = ["lexical", "vector", "graph", "hybrid"]
+                results = {s: retrieve(query, s, k=3) for s in strategies}
 
-            st.markdown("---")
-            st.markdown("#### Retrieval by Strategy")
-            st.caption("Same generation step for all four — the only variable is what each strategy retrieves.")
+                best_sources = results["hybrid"] or results["graph"] or results["vector"] or results["lexical"]
+                answer = synthesize_answer(query, best_sources)
 
-            cols = st.columns(4)
-            for col, strategy in zip(cols, strategies):
-                with col:
-                    st.markdown(f"**{strategy.capitalize()}**")
-                    strat_results = results[strategy]
-                    if not strat_results:
-                        st.caption("No match")
-                        continue
-                    for r in strat_results:
-                        st.metric("Score", f"{r['score']:.2f}", label_visibility="collapsed")
+                st.markdown("#### Answer (local simulation)")
+                st.markdown(f"<div class='answer-box'>{answer}</div>", unsafe_allow_html=True)
+                if best_sources:
+                    with st.expander("Cited sources"):
+                        for i, src in enumerate(best_sources, 1):
+                            st.caption(f"[{i}] {src['doc']}: {src['text']}")
+                else:
+                    st.info("No chunk in the corpus overlaps with this query, try one of the suggestions above.")
+
+                st.markdown("---")
+                st.markdown("#### Retrieval by Strategy (local simulation)")
+                st.caption("Same generation step for all four, the only variable is what each strategy retrieves.")
+
+                cols = st.columns(4)
+                for col, strategy in zip(cols, strategies):
+                    with col:
+                        st.markdown(f"**{strategy.capitalize()}**")
+                        strat_results = results[strategy]
+                        if not strat_results:
+                            st.caption("No match")
+                            continue
+                        for r in strat_results:
+                            st.metric("Score", f"{r['score']:.2f}", label_visibility="collapsed")
+                            st.caption(f"{r['text'][:90]}...")
                         st.caption(f"{r['text'][:90]}…")
         else:
             st.info("Type a question above to run retrieval.")
@@ -503,7 +604,7 @@ with tab_playground:
     # --- PROMPT EVALUATOR: real inputs, deterministic metrics ---
     with pg_prompt:
         st.markdown("### Evaluate a Response Against Context")
-        st.markdown("Edit any field below — metrics recompute from the actual text, not random noise.")
+        st.markdown("Edit any field below, metrics recompute from the actual text, not random noise.")
 
         default_context = CORPUS[10]["text"] if len(CORPUS) > 10 else (CORPUS[0]["text"] if CORPUS else "")
         default_query = "What triggers ERR-7741 and what's the first remediation step?"
@@ -534,7 +635,7 @@ with tab_playground:
                 st.metric(label, f"{value:.0%}", help=help_text)
 
         st.markdown("---")
-        st.markdown("#### Parameters (illustrative — affect risk framing, not the metrics above)")
+        st.markdown("#### Parameters (illustrative, affect risk framing, not the metrics above)")
         col1, col2, col3 = st.columns(3)
         with col1:
             temperature = st.slider("Temperature", 0.0, 1.0, 0.0, 0.1, help="0 = deterministic. Higher = more prompt-injection surface.")
@@ -544,7 +645,7 @@ with tab_playground:
             precision_target = st.slider("Precision target", 50, 100, 85)
 
         risk_note = (
-            "High temperature + low citation coverage is the classic hallucination signature — "
+            "High temperature + low citation coverage is the classic hallucination signature, "
             "watch that combination in production." if temperature > 0.5 and metrics["citation_coverage"] < 0.5
             else "Low entity leakage + high groundedness: this response stays inside its context."
             if metrics["entity_leakage"] < 0.2 and metrics["groundedness"] > 0.6
@@ -585,7 +686,9 @@ with tab_playground:
 
         content = st.text_area("Content to analyze", value=samples[input_format], height=160, key="fmt_content")
 
-        if content.strip():
+        run_analysis = st.button("🔍 Analyze", type="primary", use_container_width=True)
+
+        if run_analysis and content.strip():
             profile = analyze_format(content, input_format)
 
             st.markdown("#### Extraction Result")
@@ -602,13 +705,13 @@ with tab_playground:
             if target_strategy == "Vector RAG" and profile["entities"] > 0:
                 st.info(
                     f"Vector RAG will embed this as text and mostly discard the {profile['entities']} "
-                    "structural entities — fine for semantic search, but relationships like "
+                    "structural entities, fine for semantic search, but relationships like "
                     "'depends_on' become invisible to multi-hop questions."
                 )
             elif target_strategy == "Graph RAG":
                 st.info(
                     f"Graph RAG extracts {profile['entities']} entities and {profile['relations']} "
-                    "relationship cues from this snippet — the more structured the input "
+                    "relationship cues from this snippet, the more structured the input "
                     "(DITA/XML > JSON > Markdown), the less inference the extractor has to guess at."
                 )
             else:
@@ -616,30 +719,18 @@ with tab_playground:
                     f"Hybrid RAG keeps both: {profile['entities']} entities for graph traversal, "
                     "plus the full text embedded for semantic fallback when the graph has no path."
                 )
+        elif not content.strip():
+            st.info("Paste some content above, then click Analyze.")
         else:
-            st.info("Paste some content above to see extraction results.")
+            st.caption("Click **Analyze** to run extraction on the content above.")
 
 # ============================================================================
 # FOOTER
 # ============================================================================
 st.markdown("---")
-col1, col2, col3 = st.columns([1, 2, 1])
-
-with col1:
-    st.markdown("### Get in Touch")
-    st.markdown(f"[📧 Email](mailto:{PROFILE.get('email', 'ashishpathak1005@gmail.com')})")
-    st.markdown(f"[📅 Book 30 min]({PROFILE.get('calendly_url') or CALENDLY})")
-
-with col3:
-    st.markdown("### Elsewhere")
-    if PROFILE.get("github_url"):
-        st.markdown(f"[GitHub]({PROFILE['github_url']})")
-    if PROFILE.get("linkedin_url"):
-        st.markdown(f"[LinkedIn]({PROFILE['linkedin_url']})")
-
 st.markdown(
-    "<div style='text-align: center; opacity: 0.4; font-size: 0.85rem; margin-top: 20px;'>"
-    "Built with Streamlit | Dark theme"
+    "<div style='text-align: center; opacity: 0.4; font-size: 0.85rem;'>"
+    "Built with Streamlit"
     "</div>",
     unsafe_allow_html=True,
 )
