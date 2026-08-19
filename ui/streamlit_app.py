@@ -15,6 +15,7 @@ import streamlit as st
 
 ROOT = Path(__file__).resolve().parent.parent
 CALENDLY = "https://calendly.com/ashishpathak1005/30min"
+RESUME_GDOC = "https://docs.google.com/document/d/1O_qtvSQNI3hy35Qri0OZEOMfCcFr8I3l"
 
 # ============================================================================
 # CONFIG & THEME
@@ -40,6 +41,17 @@ st.markdown("""
         margin: 3px; white-space: nowrap;
     }
     .answer-box { background: #10162E; border: 1px solid #00D9FF44; padding: 18px 20px; border-radius: 10px; margin: 12px 0; }
+    .print-btn {
+        background: #1A1F3A; border: 1px solid #334155; color: #F0F0F0;
+        padding: 8px 16px; border-radius: 8px; font-size: 0.95rem; cursor: pointer;
+        width: 100%; margin-top: 4px;
+    }
+    .print-btn:hover { border-color: #00D9FF; color: #00D9FF; }
+
+    @media print {
+        .stTabs [data-baseweb="tab-list"], .print-btn, button { display: none !important; }
+        html, body, .stApp { background: white !important; color: black !important; }
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -74,6 +86,15 @@ def load_corpus() -> list[dict]:
 PORTFOLIO = load_portfolio()
 CORPUS = load_corpus()
 PROFILE = PORTFOLIO.get("profile", {})
+
+
+def render_resume_actions(use_container_width: bool = True) -> None:
+    """View (Google Doc) + browser print — used on both Welcome and About."""
+    st.link_button("📄 View Resume", RESUME_GDOC, use_container_width=use_container_width)
+    st.markdown(
+        "<button class='print-btn' onclick='window.print()'>🖨️ Print this page</button>",
+        unsafe_allow_html=True,
+    )
 
 # ============================================================================
 # RETRIEVAL / SCORING HELPERS (deterministic, driven by real input — not random)
@@ -260,15 +281,7 @@ with tab_home:
 
     with col2:
         st.markdown("### Get the Resume")
-        resume_md = PORTFOLIO.get("resume", {}).get("markdown", "")
-        if resume_md:
-            st.download_button(
-                "⬇ Download Resume (.md)",
-                data=resume_md,
-                file_name="Ashish_Kumar_Pathak_Resume.md",
-                mime="text/markdown",
-                use_container_width=True,
-            )
+        render_resume_actions()
         col_a, col_b = st.columns(2)
         with col_a:
             st.link_button("📧 Email", f"mailto:{PROFILE.get('email', 'ashishpathak1005@gmail.com')}", use_container_width=True)
@@ -285,14 +298,13 @@ with tab_about:
     for para in summary_paras:
         st.markdown(para)
 
-    resume_md = PORTFOLIO.get("resume", {}).get("markdown", "")
-    if resume_md:
-        st.download_button(
-            "⬇ Download full resume (.md)",
-            data=resume_md,
-            file_name="Ashish_Kumar_Pathak_Resume.md",
-            mime="text/markdown",
-            key="about_resume_dl",
+    col_r1, col_r2, _ = st.columns([1, 1, 2])
+    with col_r1:
+        st.link_button("📄 View Resume", RESUME_GDOC, use_container_width=True)
+    with col_r2:
+        st.markdown(
+            "<button class='print-btn' onclick='window.print()'>🖨️ Print this page</button>",
+            unsafe_allow_html=True,
         )
 
     st.markdown("---")
@@ -422,9 +434,36 @@ with tab_playground:
     # --- RAG CHAT: real retrieval + real synthesized answer ---
     with pg_chat:
         st.markdown("### Ask the Helios Corpus")
-        st.markdown("Try: *Who owns checkout-api?* · *What triggers ERR-7741?* · *Who do I escalate a payments outage to?*")
+        st.info(
+            "🧪 **No upload needed to try this.** It runs against a fixed test corpus — "
+            f"{len(CORPUS)} chunks from a fictional platform called Helios (services, on-call "
+            "escalation, error codes) — the same sample data the live API seeds. Pick an example "
+            "question below to see it work, then edit or replace it with anything you want to ask."
+        )
 
-        query = st.text_input("Your question:", value="Who owns checkout-api?", key="chat_query")
+        example_questions = [
+            "Who owns checkout-api?",
+            "What triggers ERR-7741?",
+            "Who do I escalate a payments outage to?",
+            "What happens when the fraud-scorer's feature-store lookup times out?",
+        ]
+
+        if "chat_query" not in st.session_state:
+            st.session_state.chat_query = example_questions[0]
+
+        def _apply_example():
+            choice = st.session_state.chat_example_select
+            if choice != "— pick an example, or skip and type your own below —":
+                st.session_state.chat_query = choice
+
+        st.selectbox(
+            "Example questions:",
+            ["— pick an example, or skip and type your own below —"] + example_questions,
+            key="chat_example_select",
+            on_change=_apply_example,
+        )
+
+        query = st.text_input("Your question (editable):", key="chat_query")
 
         if query.strip():
             strategies = ["lexical", "vector", "graph", "hybrid"]
