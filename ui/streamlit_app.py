@@ -61,6 +61,31 @@ st.markdown("""
     }
     .print-btn-icon:hover { border-color: #00D9FF; color: #00D9FF; }
 
+    /* Native st.button() elements (top nav, Home reference links) don't reliably
+       inherit page-level colors - their background/text come from Streamlit's own
+       component styling, so they need explicit rules or they can render unreadable
+       (e.g. light text on a light background) regardless of the page theme. */
+    div[data-testid="stButton"] button,
+    button[kind="secondary"] {
+        background-color: #1A1F3A !important;
+        color: #F0F0F0 !important;
+        border: 1px solid #334155 !important;
+    }
+    div[data-testid="stButton"] button:hover,
+    button[kind="secondary"]:hover {
+        border-color: #00D9FF !important;
+        color: #00D9FF !important;
+    }
+    button[kind="primary"] {
+        background-color: #00D9FF !important;
+        color: #0A0E27 !important;
+        border: 1px solid #00D9FF !important;
+        font-weight: 700 !important;
+    }
+    button[kind="primary"]:hover {
+        background-color: #33e3ff !important;
+    }
+
     @media print {
         .stTabs [data-baseweb="tab-list"], .print-btn-icon, button { display: none !important; }
         html, body, .stApp { background: white !important; color: black !important; }
