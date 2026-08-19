@@ -1,6 +1,6 @@
 """
-Ashish Pathak – Knowledge Architect Portfolio.
-Dark theme + pink accents. Animated hero + tabbed playground.
+Ashish Pathak – Knowledge Architect Portfolio (Professional Edition)
+Production-grade. Dark AI aesthetic. Real-time evaluation. No layout hell.
 """
 from __future__ import annotations
 
@@ -10,9 +10,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import streamlit as st
-
-# Import the homepage v2
-from ui.homepage_v2 import *
+# Import the professional portfolio
+from ui.portfolio_pro import *
 
 # That's it.
