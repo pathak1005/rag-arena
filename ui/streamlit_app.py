@@ -99,8 +99,13 @@ st.markdown("""
         font-weight: 700 !important;
     }
     button[kind="primary"],
-    button[kind="primary"] * {
-        color: #1a1e24 !important;
+    button[kind="primary"] *,
+    button[kind="primary"] p,
+    button[kind="primary"] span,
+    button[kind="primary"] div {
+        color: #000000 !important;
+        -webkit-text-fill-color: #000000 !important;
+        opacity: 1 !important;
     }
     button[kind="primary"]:hover {
         background-color: #f5b041 !important;
