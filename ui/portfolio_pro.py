@@ -12,8 +12,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import streamlit as st
 import pandas as pd
-import plotly.graph_objects as go
-import plotly.express as px
 import numpy as np
 from typing import Dict, List, Tuple
 import json
@@ -565,30 +563,18 @@ def render_playground():
 
         # Visualization
         st.markdown("---")
-        fig = go.Figure(data=[
-            go.Scatterpolar(
-                r=[
-                    metrics["groundedness"],
-                    metrics["context_relevance"],
-                    metrics["citation_coverage"],
-                    metrics["recall"],
-                    metrics["precision"],
-                    metrics["confidence"],
-                ],
-                theta=["Groundedness", "Context\nRelevance", "Citation\nCoverage", "Recall", "Precision", "Confidence"],
-                fill="toself",
-                fillcolor=f"rgba(255, 0, 110, 0.2)",
-                line=dict(color=THEME["accent_magenta"]),
-            )
-        ])
-        fig.update_layout(
-            template="plotly_dark",
-            paper_bgcolor=THEME["bg_secondary"],
-            plot_bgcolor=THEME["bg_tertiary"],
-            font=dict(color=THEME["text_primary"]),
-            height=400,
-        )
-        st.plotly_chart(fig, use_container_width=True)
+        metric_chart_data = pd.DataFrame({
+            "Metric": ["Groundedness", "Context Relevance", "Citation Coverage", "Recall", "Precision", "Confidence"],
+            "Score": [
+                metrics["groundedness"],
+                metrics["context_relevance"],
+                metrics["citation_coverage"],
+                metrics["recall"],
+                metrics["precision"],
+                metrics["confidence"],
+            ]
+        })
+        st.bar_chart(metric_chart_data.set_index("Metric"))
 
     # ====== TAB 4: FORMAT CONVERSION ======
     with tab4:
@@ -714,22 +700,11 @@ def render_playground():
             st.markdown(f"**Conversion Method:** {profile['effort']}")
 
             # Visualization
-            fig = go.Figure(data=[
-                go.Bar(
-                    x=["Parsing", "Embedding/Extraction"],
-                    y=[profile["parsing_time"], profile["embedding_time"]],
-                    marker_color=[THEME["accent_cyan"], THEME["accent_magenta"]],
-                )
-            ])
-            fig.update_layout(
-                title="Conversion Effort (milliseconds)",
-                template="plotly_dark",
-                paper_bgcolor=THEME["bg_secondary"],
-                plot_bgcolor=THEME["bg_tertiary"],
-                font=dict(color=THEME["text_primary"]),
-                height=300,
-            )
-            st.plotly_chart(fig, use_container_width=True)
+            effort_chart_data = pd.DataFrame({
+                "Stage": ["Parsing", "Embedding/Extraction"],
+                "Milliseconds": [profile["parsing_time"], profile["embedding_time"]]
+            })
+            st.bar_chart(effort_chart_data.set_index("Stage"), use_container_width=True)
 
 # ============================================================================
 # MAIN APP
