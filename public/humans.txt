@@ -1,0 +1,12 @@
+/* TEAM */
+Name: Ashish Kumar Pathak
+Role: Knowledge Architect, AI Strategy & Governance
+Location: Hyderabad, India
+Contact: ashishpathak1005 [at] gmail.com
+GitHub: https://github.com/pathak1005
+LinkedIn: https://www.linkedin.com/in/ashish-kumar-pathak-b5716a16/
+
+/* SITE */
+Standards: HTML5, schema.org Person
+Components: Python, FastAPI, Streamlit, Groq, LangGraph, NetworkX
+Software: fastembed, rank-bm25, Fly.io

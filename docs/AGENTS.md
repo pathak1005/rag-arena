@@ -115,8 +115,9 @@ Two sinks, one always available.
 ### Local tracer (always on)
 
 `app/observability.py` records every span in-process: name, status, duration, inputs,
-outputs, and human-readable notes. Exposed at `GET /traces` and `GET /traces/{trace_id}`,
-and rendered as a waterfall in the UI's Agent Pipeline tab.
+outputs, and human-readable notes. Exposed at `GET /traces` and `GET /traces/{trace_id}` —
+call it directly, or inspect it via `/docs`, since the current UI's Playground focuses on
+the retrieval/evaluation surface rather than a dedicated trace viewer.
 
 A 50-entry ring buffer, not a database. Traces are debugging aids with a short useful life;
 persisting them would mean a schema, migrations, and a retention policy for something nobody

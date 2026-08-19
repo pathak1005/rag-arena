@@ -290,7 +290,7 @@ with tab_home:
         st.markdown(
             "- **About** - full experience, skills, education, certifications\n"
             "- **Work** - real projects, with links\n"
-            "- **Playground** - try the retrieval strategies live, on the actual sample corpus"
+            "- **Playground** - try the retrieval strategies live, on real sample text"
         )
 
     with col2:
@@ -382,11 +382,74 @@ with tab_work:
 with tab_playground:
     st.markdown("### Interactive RAG Demonstrations")
     st.markdown(
-        f"All demos run against the same {len(CORPUS)}-chunk sample corpus the live API seeds for "
-        "`/seed_demo`, a fictional platform called **Helios** with services, on-call escalation, and "
-        "error codes. Nothing here calls a network endpoint; retrieval and scoring run in the page itself, "
-        "so results are instant and reproducible."
+        "All demos below use the same sample text, a short set of notes about a fictional "
+        "company called Helios, so you can compare strategies fairly. RAG Chat calls a live "
+        "backend; the other tools run right here on the page."
     )
+
+    st.markdown("#### What changes as you add each strategy?")
+    st.caption("Pick one to see what it adds, using a plain example, plus a tip for writing text that retrieves well with it.")
+
+    strategy_explainer = {
+        "Lexical search (keyword match)": {
+            "what": (
+                "Finds text that contains the same words as your question. Ask about "
+                "'checkout-api' and it matches any sentence that literally says "
+                "'checkout-api'. Fast and simple, but it is really just word-matching, "
+                "not meaning-matching, and it is not really RAG on its own, it is what "
+                "search engines did for years before RAG existed."
+            ),
+            "change": "The starting point: nothing to compare it to yet.",
+            "tip": (
+                "Use the exact words your reader will type. Spell out an abbreviation "
+                "at least once. Repeat the key term instead of only saying 'it' or 'this'."
+            ),
+        },
+        "+ Vector search (meaning-based)": {
+            "what": (
+                "Turns sentences into numbers that capture meaning, so it can find a match "
+                "even when no word is shared. Ask 'why did my order fail' and it can still "
+                "find a sentence about 'payment declined'."
+            ),
+            "change": "Lexical needs the same words. This finds the same idea in different words.",
+            "tip": (
+                "Write in plain, complete sentences rather than fragments or heavy jargon. "
+                "The more naturally a sentence reads, the easier it is to match against a "
+                "naturally phrased question."
+            ),
+        },
+        "Graph RAG (relationships)": {
+            "what": (
+                "Pulls out the things mentioned (people, teams, services) and how they "
+                "connect: 'X is owned by Y', 'Y escalates to Z', then follows that chain "
+                "to answer a question no single sentence answers by itself."
+            ),
+            "change": "Vector search finds one matching sentence. This can chain two or three separate facts together.",
+            "tip": (
+                "State relationships in one plain sentence: 'checkout-api is owned by "
+                "Team Aurora,' not 'the team responsible for checkout handles ownership.' "
+                "A clear subject, verb, and object extracts cleanly."
+            ),
+        },
+        "Hybrid (all combined)": {
+            "what": (
+                "Runs all three and blends the results, so a question that needs an exact "
+                "term, a paraphrase, and a relationship all at once still gets a good "
+                "answer, instead of betting on a single strategy."
+            ),
+            "change": "Nothing new is searched, the same three are combined so one covers another's blind spot.",
+            "tip": "Benefits from all three tips above at once: exact terms, plain sentences, explicit relationships.",
+        },
+    }
+
+    picked_strategy = st.selectbox("See what changes:", list(strategy_explainer.keys()), key="strategy_explainer_pick")
+    info = strategy_explainer[picked_strategy]
+    st.markdown(f"<div class='card'><strong>What it does:</strong> {info['what']}</div>", unsafe_allow_html=True)
+    col_a, col_b = st.columns(2)
+    with col_a:
+        st.caption(f"**What's new here:** {info['change']}")
+    with col_b:
+        st.caption(f"**Writing tip:** {info['tip']}")
 
     pg_spec, pg_chat, pg_prompt, pg_format = st.tabs(
         ["🔍 Spec Inspector", "💬 RAG Chat", "📊 Prompt Evaluator", "🔄 Format Converter"]
@@ -472,12 +535,12 @@ with tab_playground:
 
     # --- RAG CHAT: tries the live Groq-backed API first, falls back to local simulation ---
     with pg_chat:
-        st.markdown("### Ask the Helios Corpus")
+        st.markdown("### Ask a Question")
         st.info(
-            "🧪 **No upload needed to try this.** It queries a fixed test corpus, "
-            f"{len(CORPUS)} chunks from a fictional platform called Helios (services, on-call "
-            "escalation, error codes). Pick an example question below, then edit or replace it "
-            "with anything you want to ask."
+            "🧪 **No upload needed to try this.** It answers from a fixed set of sample "
+            "notes about a fictional company called Helios (services, on-call escalation, "
+            "error codes). Pick an example question below, then edit or replace it with "
+            "anything you want to ask."
         )
 
         example_questions = [
@@ -565,7 +628,7 @@ with tab_playground:
             else:
                 st.warning(
                     f"⚪ Backend unreachable right now ({live_error}). Showing the local, "
-                    "no-network simulation instead, same corpus, keyword-overlap scoring."
+                    "no-network simulation instead, same sample text, keyword-overlap scoring."
                 )
                 strategies = ["lexical", "vector", "graph", "hybrid"]
                 results = {s: retrieve(query, s, k=3) for s in strategies}
@@ -580,7 +643,7 @@ with tab_playground:
                         for i, src in enumerate(best_sources, 1):
                             st.caption(f"[{i}] {src['doc']}: {src['text']}")
                 else:
-                    st.info("No chunk in the corpus overlaps with this query, try one of the suggestions above.")
+                    st.info("Nothing in the sample text overlaps with this question, try one of the suggestions above.")
 
                 st.markdown("---")
                 st.markdown("#### Retrieval by Strategy (local simulation)")
@@ -730,7 +793,8 @@ with tab_playground:
 st.markdown("---")
 st.markdown(
     "<div style='text-align: center; opacity: 0.4; font-size: 0.85rem;'>"
-    "Built with Streamlit"
+    "Built with Streamlit &middot; "
+    "<a href='/about.html' style='color: inherit;'>Plain-text profile</a>"
     "</div>",
     unsafe_allow_html=True,
 )

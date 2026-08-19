@@ -13,6 +13,14 @@ primary_region = 'sin'
     LEAN = '1'
     PREFETCH_MODEL = '1'
 
+# Served directly by Fly's edge, bypassing the app entirely. If a file here doesn't
+# match the requested path, Fly forwards the request to the app as normal - this is
+# what lets robots.txt/sitemap.xml/about.html work even if Streamlit is slow or busy,
+# and is why "/" itself must never collide with a filename in public/ (no index.html).
+[[statics]]
+  guest_path = '/app/public'
+  url_prefix = '/'
+
 [env]
   API_PORT = '8000'
   EMBED_BATCH_SIZE = '8'

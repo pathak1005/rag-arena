@@ -75,11 +75,15 @@ COPY --from=builder /opt/venv /opt/venv
 WORKDIR /app
 COPY --chown=appuser:appuser app/ ./app/
 COPY --chown=appuser:appuser ui/ ./ui/
+COPY --chown=appuser:appuser scripts/ ./scripts/
 COPY --chown=appuser:appuser data/demo_corpus/ ./data/demo_corpus/
 # portfolio.json carries the committed site content. Without this the export-and-commit
 # durability workflow silently does nothing - the container would always boot with
 # placeholder content no matter what was committed. golden_set.json powers `make eval`.
 COPY --chown=appuser:appuser data/*.json ./data/
+# Pre-baked fallback for the crawler-visible profile page; start.sh regenerates it from
+# the committed portfolio.json on every boot, but this covers the (rare) case that fails.
+COPY --chown=appuser:appuser public/ ./public/
 COPY --chown=appuser:appuser start.sh ./start.sh
 
 RUN chmod +x start.sh \

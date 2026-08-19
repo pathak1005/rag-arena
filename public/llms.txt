@@ -1,0 +1,37 @@
+# Ashish Pathak
+
+> Knowledge Architect with 12+ years in enterprise information architecture, AI strategy,
+> knowledge graphs, and retrieval-augmented generation (RAG) systems.
+
+This site (rag-arena.fly.dev) is both a portfolio and a working RAG reference implementation.
+It runs three retrieval strategies (lexical/BM25, dense vector, knowledge-graph traversal) over
+one identical chunk set, scores every answer with deterministic evaluation metrics (no LLM
+grading its own output), and exposes a live API a visitor can query directly.
+
+## Who this is
+
+Ashish Kumar Pathak. Based in Hyderabad, India. Currently a Staff Technical Writer building an
+AI-driven knowledge platform at ServiceNow. Prior roles at Autodesk, Capgemini, Infosys, and
+others, spanning technical documentation, content strategy, and knowledge architecture.
+
+Full structured profile: /about.html (includes schema.org/Person markup)
+Resume: contact via email below for the current document
+Contact: ashishpathak1005@gmail.com
+GitHub: https://github.com/pathak1005
+LinkedIn: https://www.linkedin.com/in/ashish-kumar-pathak-b5716a16/
+
+## What this project demonstrates
+
+- Multi-strategy retrieval (lexical, vector, graph, hybrid) compared on identical inputs
+- Deterministic RAG evaluation: groundedness, context relevance, citation coverage, entity leakage
+- PII redaction before any content is indexed or sent to an LLM
+- A self-correcting multi-agent pipeline (LangGraph) that re-routes retrieval on a failed grade
+- A RAG-readiness analyzer that scores arbitrary text 0-100 for how well it will retrieve
+
+## Key pages
+
+- / — portfolio home, about, work samples, and the interactive playground
+- /about.html — static profile page (readable without JavaScript)
+- /docs — OpenAPI documentation for the underlying FastAPI backend (when the API is reachable)
+
+Source code: https://github.com/pathak1005/rag-arena (MIT licensed)

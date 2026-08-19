@@ -1,131 +1,158 @@
-# RAG Arena — Lexical vs. Vector vs. Graph retrieval, measured
+# RAG Arena — Ashish Pathak's Knowledge Architecture Portfolio
 
-An enterprise RAG reference implementation that runs **three retrieval strategies over one
-identical chunk set** and scores each answer deterministically, so you can see *which*
-strategy wins *which* kind of question — and why.
+**Live:** https://rag-arena.fly.dev
 
-It also ships the parts that usually get bolted on last: PII redaction before indexing,
-a content-readiness analyzer, and an API playground that explains what a response actually
-means.
+A portfolio site that proves its own claims: instead of describing retrieval-augmented
+generation in prose, it runs **three retrieval strategies (lexical, vector, graph) over one
+identical chunk set**, scores every answer with deterministic metrics, and lets a visitor try
+it live — no login, no upload required to start.
 
-```
-                      ┌─ BM25 index        → lexical retriever ─┐
-Document → PII scrub → ┼─ embeddings        → vector retriever  ─┼→ chunk_ids → ONE prompt → LLM
-          → chunk ONCE └─ entities/relations → graph retriever  ─┘         │
-                                                                    RRF fusion → hybrid
-```
+The backend is a real FastAPI service with a Groq-backed LLM. The frontend is a single
+Streamlit app with four sections: **Home, About, Work, Playground.**
 
 ---
 
-## The one design decision everything rests on
+## Architecture
+
+One container, two processes, one shared data layer:
+
+```mermaid
+flowchart TB
+    subgraph Browser
+        U[Visitor]
+    end
+
+    subgraph "Fly.io machine (single container)"
+        direction TB
+        ST["Streamlit UI :8501\n(public, internal_port)"]
+        API["FastAPI backend :8000\n(internal only)"]
+        ST -- "requests.post/get\ntimeout-guarded" --> API
+
+        subgraph "app/ (backend)"
+            STORE[store.py\nEngine + in-process index]
+            LEX[retrieval/lexical.py\nBM25]
+            VEC[retrieval/vector.py\nfastembed + numpy cosine]
+            GRAPH[retrieval/graph.py\nentity extraction + traversal]
+            FUSION[retrieval/fusion.py\nReciprocal Rank Fusion]
+            PII[governance/pii.py\nredaction before indexing]
+            EVAL[evaluate.py\ndeterministic metrics]
+            AGENT[agents/pipeline.py\nLangGraph self-correcting loop]
+            LLM[llm.py\nGroq client + extractive fallback]
+        end
+
+        API --> STORE
+        STORE --> PII
+        PII --> LEX
+        PII --> VEC
+        PII --> GRAPH
+        LEX --> FUSION
+        VEC --> FUSION
+        GRAPH --> FUSION
+        STORE --> EVAL
+        STORE --> AGENT
+        AGENT --> LLM
+        STORE --> LLM
+    end
+
+    subgraph External
+        GROQ[(Groq API\nopenai/gpt-oss-120b)]
+        FLYSTATIC["Fly edge static files\npublic/ - robots.txt, sitemap.xml,\nllms.txt, about.html"]
+    end
+
+    U -- "HTTPS" --> FLYSTATIC
+    U -- "HTTPS" --> ST
+    LLM -- "HTTPS, short timeout" --> GROQ
+
+    DATA[("data/portfolio.json\ndata/demo_corpus/*.md\ngit-committed, read at boot")]
+    STORE -.reads.-> DATA
+    ST -.reads directly for\nstatic display content.-> DATA
+```
+
+**Why this shape, not a simpler one:**
+
+- **Single uvicorn worker.** Indexes (BM25, vectors, graph) live in process memory. A second
+  worker would hold a different graph and different vectors, and requests would hit either
+  nondeterministically. Neo4j and ChromaDB backends are implemented and remove this limit when
+  it starts to matter — see [docs/GRAPHRAG.md](docs/GRAPHRAG.md).
+- **UI is a pure HTTP client of the API, never a second copy of the pipeline.** Importing the
+  retrieval code into Streamlit directly would build a second in-memory index inside the UI
+  process, which would silently diverge from the API's index.
+- **Timeout-guarded calls, not blind trust.** The UI's live RAG Chat calls the backend with a
+  15s timeout and falls back to a local, no-network keyword-overlap simulation over the same
+  corpus if the backend is slow or unreachable — so a backend hiccup degrades the demo instead
+  of hanging the page.
+- **Content is git-backed, not database-backed.** `data/portfolio.json` (profile, resume,
+  skills, projects) and `data/demo_corpus/*.md` (the sample corpus) are committed files, read
+  at process start. On Fly the container filesystem is ephemeral — edit, export, commit, push,
+  redeploy is the actual persistence model, not a hidden database.
+
+---
+
+## The one design decision the retrieval demo rests on
 
 Documents are redacted and chunked **exactly once**. All three retrievers select from that
-same immutable `chunk_id` set, and all three feed the **same prompt template**.
+same immutable `chunk_id` set, and all three feed the **same prompt template**. Most "Graph RAG
+vs Vector RAG" comparisons use different chunking and different prompts per pipeline, which
+makes any score difference unattributable. Here, retrieval is the only variable, so a
+difference in score is a difference in retrieval.
 
-This matters more than it sounds. Most "Graph RAG vs Vector RAG" comparisons use different
-chunking, different context sizes, and different prompts for each pipeline — which makes any
-score difference unattributable. Here retrieval is the only variable, so a difference in
-score is a difference in retrieval.
-
-The same decision is what makes graph RAG *cheap to adopt*: the graph is an index built
-alongside your existing chunks, not a replacement pipeline. See
-[docs/GRAPHRAG.md](docs/GRAPHRAG.md) for the migration playbook.
-
----
-
-## When does each strategy actually win?
-
-The demo corpus is engineered so each strategy has a question it provably wins. These are
-real results from `data/demo_corpus` (51 chunks, 60 relations):
-
-| Question | Winner | Result | Why the others fail |
-| --- | --- | --- | --- |
-| `What causes ERR-7741?` | **Lexical** | lexical rank 1, vector rank 2 | 33 near-identical error-code chunks. Dense vectors compress the rare token toward its siblings; BM25 scores the literal term. |
-| `How do we stop customer data leaking into our logs?` | **Vector** | vector finds the right doc; source shares almost no vocabulary with the query | The document says "subscriber identifiers" and "accidental disclosure", never "customer data" or "leaking". BM25 has nothing to match. |
-| `Who should I escalate to if checkout-api is failing because of a payment problem?` | **Graph** | graph rank 1, **lexical and vector both miss it entirely** | The answer spans three documents: `checkout-api →DEPENDS_ON→ payments-gateway →OWNED_BY→ Team Meridian →ESCALATES_TO→ Priya Raman`. No single chunk contains it. |
-
-The router classifies each question and picks a lane **before** retrieval, showing the
-signals it used. On the three cases above it is correct 3/3.
-
-The honest conclusion the project lands on is not "graph RAG is better". It is **route** —
-the three strategies fail in different, predictable places, so pick per query.
-
----
-
-## Quick start
-
-Requires **Python 3.12** (3.13/3.14 wheels for the ML stack are still unreliable).
-
-```powershell
-git clone https://github.com/pathak1005/rag-arena.git
-cd rag-arena
-.\run.ps1                      # creates venv, installs, starts API + UI
+```
+                      ┌─ BM25 index         → lexical retriever ─┐
+Document → PII scrub → ┼─ embeddings         → vector retriever  ─┼→ chunk_ids → ONE prompt → LLM
+          → chunk ONCE └─ entities/relations → graph retriever   ─┘         │
+                                                                     RRF fusion → hybrid
 ```
 
-Or manually:
-
-```bash
-py -3.12 -m venv .venv
-.venv/Scripts/python -m pip install -r requirements.txt
-.venv/Scripts/python -m uvicorn app.main:app --port 8000    # terminal 1
-.venv/Scripts/python -m streamlit run ui/streamlit_app.py   # terminal 2
-```
-
-- UI → http://localhost:8501
-- OpenAPI docs → http://localhost:8000/docs
-
-Click **Load demo corpus** in the sidebar, then try the three example questions on the Chat tab.
-
-**No API key needed.** Without `GROQ_API_KEY` the system answers using a deterministic
-extractive fallback and flags `degraded: true`. Retrieval metrics stay valid and comparable —
-only answer fluency changes.
-
 ---
 
-## What's in the box
+## What's on the site
 
-| Feature | Where |
+| Section | What it does |
 | --- | --- |
-| **Chat** with routing explanation and per-chunk source attribution | UI → Chat |
-| **Multi-agent pipeline** (LangGraph) with self-correcting re-routing | UI → Agent Pipeline |
-| **Evaluation Arena** — all lanes side by side, scored | UI → Evaluation Arena |
-| **RAG Readiness analyzer** — paste any page, get a 0–100 score and specific fixes | UI → RAG Readiness |
-| **API Playground** — send real requests, get annotated explanations of the response | UI → API Playground |
-| **Knowledge graph viewer** with component-count health warning | UI → Knowledge Graph |
-| **PII redaction** before chunking/embedding/LLM, with audit report | UI → Ingestion |
-| **Content Briefs** — auto-generated markdown brief per document | UI → Ingestion |
+| **Home** | Summary, resume link (Google Doc), print, contact |
+| **About** | Full experience timeline, skills, education, certifications — sourced from `data/portfolio.json`, not hardcoded |
+| **Work** | Real projects with live links, plus public GitHub repositories |
+| **Playground → Spec Inspector** | Same API response, shown at two documentation qualities — standard practice vs. what actually helps the next engineer |
+| **Playground → RAG Chat** | Live call to the Groq-backed `/chat` endpoint (15s timeout), with a local no-network fallback if the backend is unreachable |
+| **Playground → Prompt Evaluator** | Edit query/context/response, watch groundedness, citation coverage, entity leakage, recall, and precision recompute from actual text overlap — deterministic, not random |
+| **Playground → Format Converter** | Paste JSON/XML/DITA/Markdown, click Analyze, see real entity/relationship counts and what each RAG strategy would do with it |
 
-Backends are pluggable and fall back rather than failing to boot:
+Every metric on the Playground is computed from the actual text you enter or the actual demo
+corpus — nothing is randomly generated.
+
+---
+
+## Backend API
+
+18 endpoints, every response a declared Pydantic model so `/docs` is generated, not maintained:
+
+```
+/health  /backends  /                                    system
+/upload  /ingest_text  /seed_demo  /documents             ingestion
+/brief/{id}  /reset
+/chat  /query_compare  /route  /graph                     retrieval
+/agent_query  /traces  /traces/{id}                       agents
+/analyze_readiness  /explain                              governance
+```
+
+**Backends are pluggable and fall back rather than failing to boot:**
 
 | Concern | Default (zero infra) | Production path |
 | --- | --- | --- |
-| Graph | NetworkX, in-process | **Neo4j** (`GRAPH_BACKEND=neo4j`) |
-| Vectors | numpy exact search | **ChromaDB** (`VECTOR_BACKEND=chroma`) |
-| Embeddings | fastembed / ONNX (`bge-small-en-v1.5`) | same — no torch anywhere |
-| Generation | extractive fallback | Groq `llama-3.3-70b-versatile` |
+| Graph | NetworkX, in-process | Neo4j — `GRAPH_BACKEND=neo4j` |
+| Vectors | numpy exact cosine | ChromaDB — `VECTOR_BACKEND=chroma` |
+| Embeddings | fastembed / ONNX `bge-small-en-v1.5` | same — no torch anywhere |
+| Generation | Groq `openai/gpt-oss-120b` | deterministic extractive fallback if no `GROQ_API_KEY` |
 
-Running Neo4j locally takes one command, and [docs/LEARN.md](docs/LEARN.md) has the Cypher
-queries to explore the graph in Neo4j Browser:
-
-```bash
-docker compose up -d neo4j     # http://localhost:7474 — neo4j / helios-dev-password
-GRAPH_BACKEND=neo4j .venv/Scripts/python -m uvicorn app.main:app --port 8000
-```
+Without `GROQ_API_KEY` the system still answers, using a deterministic extractive fallback, and
+flags `degraded: true` on the response. Retrieval metrics stay valid either way.
 
 ---
 
-## The agent layer, and why it isn't decoration
+## The agent layer
 
-Most "agentic RAG" is a linear pipeline wearing a costume. The LangGraph layer here exists
-for one behaviour a linear pipeline cannot do:
-
-> **If retrieval was bad, re-route to a different strategy and try again.**
-
-That falls directly out of the routing thesis. If the three lanes fail in different,
-predictable places, a grader that detects "this retrieval failed" should hand the query to a
-lane that fails *differently* — rather than letting the generator produce fluent prose over
-irrelevant passages, which is the most dangerous failure mode in RAG because it looks like
-success.
+A LangGraph state machine with five nodes, doing the one thing a linear pipeline can't:
+**if retrieval was bad, re-route to a different strategy and try again.**
 
 ```
 plan ──> retrieve ──> grade ──┬── context sufficient ──> synthesize ──> verify ──> END
@@ -133,57 +160,69 @@ plan ──> retrieve ──> grade ──┬── context sufficient ──> s
   └────── re-route ◄──────────┘   context weak, attempts remaining
 ```
 
-Real behaviour on an out-of-corpus question — three lanes attempted, all rejected by the
-grader, then an honest abstention rather than a confident invention:
-
-```
-plan → retrieve → grade    lexical,  context relevance 0.000, rejected
-plan → retrieve → grade    vector,   context relevance 0.000, rejected
-plan → retrieve → grade    hybrid,   context relevance 0.000, rejected
-synthesize → verify        "The provided context does not contain this information."
-```
-
-**Grading and verification are deterministic, not LLM-judged.** An LLM grading its own
-retrieval and then its own answer compounds the same bias twice — if it finds a passage
-plausible, it will find its answer from that passage plausible too. The loop couldn't detect
-the failure it's most likely to make. Full reasoning in [docs/AGENTS.md](docs/AGENTS.md).
-
-### Observability
-
-Two sinks, one always available:
-
-- **Local tracer** — every span (name, duration, inputs, outputs, notes) recorded in-process,
-  exposed at `GET /traces` and rendered as a waterfall in the UI. No account, no key, works
-  offline.
-- **LangSmith** — set `LANGCHAIN_API_KEY` and the same spans mirror there automatically.
-
-Local-first is deliberate: a project whose observability requires the reader to sign up for a
-SaaS account has no observability story, because nobody evaluating it will ever see a trace.
+Only `synthesize` calls a model. **Grading and verification are deterministic** — an LLM
+grading its own retrieval and then its own answer compounds the same bias twice. Full reasoning
+in [docs/AGENTS.md](docs/AGENTS.md).
 
 ---
 
 ## Evaluation: what these numbers do and don't prove
 
-Every metric in the UI is **Tier-1 deterministic** — computed with no LLM in the loop, so it
-reproduces exactly run to run.
-
-This is deliberate. Using `llama-3.3-70b` to grade `llama-3.3-70b`'s own output is neither
-independent nor deterministic, and anyone who works on evals will say so within a minute.
+Every metric is **Tier-1 deterministic** — no LLM in the scoring loop, so results reproduce
+run to run.
 
 | Metric | Catches | Does **not** catch |
 | --- | --- | --- |
-| **Groundedness** | Confabulated content not traceable to context | A fluent answer that reuses context words in a *wrong relationship* |
-| **Entity leakage** | Fabricated identifiers, codes, names, numbers — the sharpest available hallucination signal | Wrong claims made only with words already in context |
-| **Context relevance** | Whether *retrieval* failed, separately from generation | Whether the retrieved chunk actually answers the question |
-| **Citation coverage** | Answer sentences with no supporting chunk | Correctly-cited but misinterpreted sources |
-| **Extractiveness** | Verbatim copying (diagnostic, not directional) | — |
+| Groundedness | Confabulated content not traceable to context | A fluent answer that reuses context words in the wrong relationship |
+| Entity leakage | Fabricated identifiers, codes, names, numbers | Wrong claims made only with words already in context |
+| Context relevance | Whether *retrieval* failed, separately from generation | Whether the retrieved chunk actually answers the question |
+| Citation coverage | Answer sentences with no supporting chunk | Correctly-cited but misinterpreted sources |
 
-An honest "I don't know" scores as **grounded**, not as a hallucination. Scoring abstention
-as failure rewards models that bluff.
+An honest "I don't know" scores as **grounded**, not as a hallucination.
 
-**What's missing:** a labelled gold set. Without one, the arena demonstrates mechanism, not
-accuracy. Building one (30–40 questions stratified by query type) is the top item in
-[docs/PLAN.md](docs/PLAN.md), and it's what would turn this from a demo into a benchmark.
+---
+
+## Search & AI-assistant visibility (SEO / AEO / GEO)
+
+Streamlit renders client-side, so most crawlers — including the ones behind ChatGPT, Gemini,
+and Perplexity — see almost nothing on `/` unless they execute JavaScript, and most don't.
+`public/` works around that: it's served directly by Fly's edge (`[[statics]]` in `fly.toml`),
+bypassing the app entirely, so it works even under load and doesn't depend on Streamlit's own
+routing.
+
+| File | Purpose |
+| --- | --- |
+| `public/robots.txt` | Explicitly allows GPTBot, ClaudeBot, Google-Extended, PerplexityBot, CCBot, and standard search crawlers |
+| `public/sitemap.xml` | Points crawlers at `/` and `/about.html` |
+| `public/about.html` | Static, JS-free HTML with the actual profile text, Open Graph tags, and `schema.org/Person` JSON-LD — this is what an AI assistant summarizing "who is Ashish Pathak" actually reads |
+| `public/llms.txt` | Emerging convention: a plain-language summary for LLM crawlers, separate from human-facing marketing copy |
+| `public/humans.txt` | Low-effort convention, harmless to include |
+
+`scripts/generate_static_profile.py` regenerates `about.html` and `sitemap.xml`'s `lastmod`
+from `data/portfolio.json` on every container boot (wired into `start.sh`), so the crawlable
+page never drifts out of sync with the resume data.
+
+---
+
+## Quick start
+
+Requires **Python 3.12** (3.13/3.14 wheels for the ML stack are still unreliable).
+
+```bash
+git clone https://github.com/pathak1005/rag-arena.git
+cd rag-arena
+py -3.12 -m venv .venv
+.venv/Scripts/python -m pip install -r requirements.txt
+
+.venv/Scripts/python -m uvicorn app.main:app --port 8000     # terminal 1
+.venv/Scripts/python -m streamlit run ui/streamlit_app.py    # terminal 2
+```
+
+- UI → http://localhost:8501
+- OpenAPI docs → http://localhost:8000/docs
+
+**No API key needed to explore.** Without `GROQ_API_KEY`, `/chat` answers using a deterministic
+extractive fallback and flags `degraded: true`.
 
 ---
 
@@ -191,39 +230,34 @@ accuracy. Building one (30–40 questions stratified by query type) is the top i
 
 | Document | What it covers |
 | --- | --- |
-| [SNAPSHOT.md](SNAPSHOT.md) | **Start here** - what exists, what it does, and what is not built yet |
-| [docs/GRAPHRAG.md](docs/GRAPHRAG.md) | How graph RAG works here, the data model, and **how to convert an existing vector RAG to graph RAG** without re-chunking or re-embedding |
-| [docs/PLAN.md](docs/PLAN.md) | Build plan, phase status, what's done and what isn't |
-| [docs/FEATURES.md](docs/FEATURES.md) | Feature specification with acceptance criteria |
-| [docs/INFRASTRUCTURE.md](docs/INFRASTRUCTURE.md) | Deployment, resource sizing, scaling limits |
+| [SNAPSHOT.md](SNAPSHOT.md) | **Start here** — what exists right now, in ~5 minutes |
+| [docs/GRAPHRAG.md](docs/GRAPHRAG.md) | How graph RAG works here, and how to convert an existing vector RAG to graph RAG without re-chunking |
+| [docs/AGENTS.md](docs/AGENTS.md) | Multi-agent design, why grading is deterministic, observability |
+| [docs/DEPLOY.md](docs/DEPLOY.md) | Fly.io deployment, combined vs. split topology, secrets |
+| [docs/INFRASTRUCTURE.md](docs/INFRASTRUCTURE.md) | Resource sizing, scaling limits, security posture |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Engineering log — the things that broke and what fixed them |
-| [docs/AGENTS.md](docs/AGENTS.md) | Multi-agent design, why grading is deterministic, and observability |
-| [docs/LEARN.md](docs/LEARN.md) | Hands-on Neo4j and ChromaDB guide with runnable queries |
+| [docs/FEATURES.md](docs/FEATURES.md) | Feature specification with acceptance criteria |
+| [docs/PLAN.md](docs/PLAN.md) | Build plan, phase status |
+| [docs/LEARN.md](docs/LEARN.md) | Hands-on Neo4j and ChromaDB reference queries |
 
 ---
 
 ## Known limitations
 
-Stated plainly, because a demo that hides its edges isn't useful to learn from.
+Stated plainly, because a project that hides its edges isn't useful to learn from.
 
-- **Single uvicorn worker, by necessity.** With the default in-process backends, indexes live
-  in process memory; `--workers 2` gives each worker a different graph. Switching to Neo4j +
-  Chroma removes this — both are implemented.
-- **The graph currently fragments.** The demo corpus produces ~42 connected components across
-  ~90 entities. That's the entity-resolution ladder stopping at step 3 (normalise → alias →
-  cheap variant matching) without embedding-based clustering. The UI surfaces this as a
-  warning rather than hiding it, because component count is the single best predictor of
-  whether graph traversal will work.
-- **Rule-based relation extraction.** Excellent on structured engineering docs, weak on prose.
-  The upgrade is LLM triple extraction against a JSON schema; the `GraphStore` interface
-  doesn't change.
-- **Routing rules are hand-weighted, not learned.** They're inspectable and correct on the
-  demo set, but the weights aren't validated against anything larger.
-- **The agent grader catches topical mismatch, not semantic mismatch.** A chunk that shares
-  vocabulary with the question but answers a different question will pass. Upgrading `grade`
-  to a cross-encoder (still deterministic) is the right next step.
-- **The demo corpus is synthetic.** It was written to expose the differences between
-  strategies. Real corpora are messier, and results will be less clean.
+- **Single uvicorn worker, by necessity** — see Architecture above.
+- **The graph fragments.** The demo corpus produces multiple disconnected components. The
+  entity-resolution ladder stops at normalize → alias → cheap variant matching, without
+  embedding-based clustering. The UI surfaces component count as a warning rather than hiding
+  it, because it's the best predictor of whether traversal will work.
+- **Rule-based relation extraction.** Strong on structured engineering docs, weak on prose.
+- **Routing rules are hand-weighted, not learned**, and validated only on the demo corpus.
+- **No labelled gold set.** The system demonstrates *mechanism* — that the strategies retrieve
+  different chunks and the differences are explainable — not *accuracy* across a realistic
+  query distribution.
+- **The demo corpus is synthetic**, written to expose the differences between strategies. Real
+  corpora are messier.
 
 ---
 

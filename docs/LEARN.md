@@ -258,7 +258,7 @@ GRAPH_BACKEND=networkx VECTOR_BACKEND=numpy  .venv/Scripts/python -m uvicorn app
 GRAPH_BACKEND=neo4j    VECTOR_BACKEND=chroma .venv/Scripts/python -m uvicorn app.main:app --port 8000
 ```
 
-Then run the same three demo questions through the Evaluation Arena in both configurations
+Then run the same three demo questions through `POST /query_compare` in both configurations
 and compare `retrieval_ms` and the returned `chunk_id`s.
 
 What you should find: results are essentially identical, and the in-process backends are

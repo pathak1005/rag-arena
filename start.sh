@@ -13,6 +13,12 @@
 #     children survive as zombies and the machine never drains cleanly.
 set -euo pipefail
 
+# Regenerate the static, crawler-visible profile page from data/portfolio.json before
+# anything starts listening. Cheap and pure-Python, so a failure here (e.g. missing
+# portfolio.json in a stripped-down image) logs and continues rather than blocking boot -
+# public/about.html just falls back to whatever shipped in the image.
+python scripts/generate_static_profile.py || echo "[start.sh] static profile generation failed, using image defaults"
+
 API_PORT="${API_PORT:-8000}"
 UI_PORT="${PORT:-8501}"
 API_ENABLED="${API_ENABLED:-1}"
