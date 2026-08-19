@@ -151,13 +151,48 @@ st.markdown("---")
 
 # ============================================================================
 # MAIN NAVIGATION
+#
+# st.tabs() cannot be jumped into programmatically (no supported API to select a
+# tab from a button elsewhere on the page), which is exactly what the Home page's
+# "References" list needs to do. So navigation here is a real session_state + button
+# pattern instead: clicking a nav button, or a reference link on Home, sets which
+# section renders and reruns. Native st.tabs() is still used *inside* Playground for
+# its two sub-tabs, since nothing needs to jump directly into one of those.
 # ============================================================================
-tab_home, tab_about, tab_work, tab_blog, tab_playground = st.tabs(
-    ["🏠 Home", "👤 About", "💼 Work", "📝 Blog", "🎮 Playground"]
-)
+SECTIONS = {
+    "Home": "🏠 Home",
+    "About": "👤 About",
+    "Work": "💼 Work",
+    "Blog": "📝 Blog",
+    "Playground": "🎮 Playground",
+}
 
-# ---- TAB: HOME ----
-with tab_home:
+if "active_section" not in st.session_state:
+    st.session_state.active_section = "Home"
+
+
+def go_to(section: str) -> None:
+    st.session_state.active_section = section
+
+
+nav_cols = st.columns(len(SECTIONS))
+for col, (key, label) in zip(nav_cols, SECTIONS.items()):
+    with col:
+        st.button(
+            label,
+            key=f"nav_{key}",
+            use_container_width=True,
+            type="primary" if st.session_state.active_section == key else "secondary",
+            on_click=go_to,
+            args=(key,),
+        )
+
+st.markdown("---")
+
+active = st.session_state.active_section
+
+# ---- SECTION: HOME ----
+if active == "Home":
     col1, col2 = st.columns([1.5, 1])
 
     with col1:
@@ -167,15 +202,18 @@ with tab_home:
 
         st.markdown("")
         st.markdown("**References**")
-        st.markdown(
-            "<div class='card'>"
-            "📄 <strong>About</strong> &mdash; full experience, skills, education, certifications<br>"
-            "💼 <strong>Work</strong> &mdash; real products and projects, with live links<br>"
-            "📝 <strong>Blog</strong> &mdash; writing on knowledge architecture and RAG<br>"
-            "🎮 <strong>Playground</strong> &mdash; try the retrieval strategies live, on real sample text"
-            "</div>",
-            unsafe_allow_html=True,
-        )
+        ref_items = [
+            ("About", "📄 About", "full experience, skills, education, certifications"),
+            ("Work", "💼 Work", "real products and projects, with live links"),
+            ("Blog", "📝 Blog", "writing on knowledge architecture and RAG"),
+            ("Playground", "🎮 Playground", "try the retrieval strategies live, on real sample text"),
+        ]
+        for key, label, desc in ref_items:
+            ref_col1, ref_col2 = st.columns([1, 3])
+            with ref_col1:
+                st.button(label, key=f"ref_{key}", use_container_width=True, on_click=go_to, args=(key,))
+            with ref_col2:
+                st.markdown(f"<div style='padding-top: 8px;'>{desc}</div>", unsafe_allow_html=True)
 
     with col2:
         st.markdown("### Resume & Contact")
@@ -190,8 +228,8 @@ with tab_home:
         if PROFILE.get("github_url"):
             st.link_button("GitHub", PROFILE["github_url"], use_container_width=True)
 
-# ---- TAB: ABOUT ----
-with tab_about:
+# ---- SECTION: ABOUT ----
+elif active == "About":
     st.markdown("### Professional Summary")
     for para in summary_paras:
         st.markdown(para)
@@ -228,8 +266,8 @@ with tab_about:
         for cert in PORTFOLIO.get("certifications", []):
             st.markdown(f"- {cert}")
 
-# ---- TAB: WORK ----
-with tab_work:
+# ---- SECTION: WORK ----
+elif active == "Work":
     st.markdown("### Products & Projects")
     st.caption("Live products, with what they do and who uses them.")
     projects = PORTFOLIO.get("projects", [])
@@ -250,9 +288,35 @@ with tab_work:
     st.caption("From github.com/pathak1005")
 
     public_repos = [
-        {"name": "Sphinx-API-Documentation-", "desc": "Sphinx documentation framework used for API documentation.", "url": "https://github.com/pathak1005/Sphinx-API-Documentation-"},
-        {"name": "Sample-Docsite", "desc": "A sample documentation site build.", "url": "https://github.com/pathak1005/Sample-Docsite"},
-        {"name": "sentimentanalysis", "desc": "Script for sentiment analysis of a text.", "url": "https://github.com/pathak1005/sentimentanalysis"},
+        {
+            "name": "Sphinx-API-Documentation-",
+            "desc": (
+                "Sphinx is a static site generator (SSG) built for documentation, and this "
+                "shows it applied to API docs: content lives as plain text (reStructuredText), "
+                "versioned in git next to the code, reviewed in pull requests, and built into "
+                "a site on every change, docs as code, not a wiki someone forgets to update."
+            ),
+            "url": "https://github.com/pathak1005/Sphinx-API-Documentation-",
+        },
+        {
+            "name": "Sample-Docsite",
+            "desc": (
+                "A documentation site built with MkDocs, a lighter-weight SSG than Sphinx, "
+                "configured with plain Markdown rather than reStructuredText. Useful reference "
+                "for teams that want docs-as-code without Sphinx's steeper authoring curve."
+            ),
+            "url": "https://github.com/pathak1005/Sample-Docsite",
+        },
+        {
+            "name": "sentimentanalysis",
+            "desc": (
+                "Scores free-text feedback (reviews, support tickets, survey responses) as "
+                "positive, negative, or neutral automatically. The point isn't the label, it's "
+                "closing the loop: instead of feedback sitting unread, negative sentiment can "
+                "be routed and prioritized immediately."
+            ),
+            "url": "https://github.com/pathak1005/sentimentanalysis",
+        },
     ]
 
     cols = st.columns(len(public_repos))
@@ -263,8 +327,8 @@ with tab_work:
                 st.caption(repo["desc"])
                 st.link_button("View on GitHub", repo["url"], use_container_width=True)
 
-# ---- TAB: BLOG ----
-with tab_blog:
+# ---- SECTION: BLOG ----
+elif active == "Blog":
     st.markdown("### Writing")
     blog_posts = PORTFOLIO.get("blog", [])
 
@@ -284,8 +348,8 @@ with tab_blog:
                 if post.get("link"):
                     st.link_button("Read", post["link"])
 
-# ---- TAB: PLAYGROUND ----
-with tab_playground:
+# ---- SECTION: PLAYGROUND ----
+elif active == "Playground":
     st.markdown("### Interactive RAG Demonstrations")
     st.markdown(
         "All demos below run right here on the page, using the same sample text so you can "
