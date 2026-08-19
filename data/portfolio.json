@@ -169,10 +169,10 @@
       "link": "https://github.com/pathak1005/rag-arena"
     },
     {
-      "name": "PII / Compliance Scanning Service",
+      "name": "Conlenz — Content Privacy Audit Platform",
       "period": "",
-      "summary": "Presidio-based PII detection service on Azure Container Apps, flagging ISO / DPDP / GDPR-relevant content across documents and published pages.",
-      "link": ""
+      "summary": "Scans published documentation, screenshots, PDFs, and knowledge bases to flag regulatory compliance risk before publication. Built for Data Protection Officers, legal teams, and technical publications departments in regulated industries needing defensible evidence of content review. Fixed-fee audits cover five areas: PII detection, brand integrity, and accessibility, among others, with remediation guidance for GDPR/DPDP compliance.",
+      "link": "https://www.conlenz.com"
     },
     {
       "name": "mygrowthpitch.org",
