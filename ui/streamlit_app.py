@@ -68,24 +68,39 @@ st.markdown("""
 
     /* Native st.button() elements (top nav, Home reference links) don't reliably
        inherit page-level colors - their background/text come from Streamlit's own
-       component styling, so they need explicit rules or they can render unreadable
-       (e.g. light text on a light background) regardless of the page theme. */
+       component styling. Button labels also render inside a nested <p>, which gets
+       its OWN text color from Streamlit's theme - a color set only on the outer
+       <button> loses to that, since inheritance loses to any explicit declaration
+       on a descendant. So color rules below target the label's actual element
+       (the `*` descendant selector), not just the button, or it can render
+       unreadable regardless of what the button itself is set to. */
     div[data-testid="stButton"] button,
     button[kind="secondary"] {
         background-color: #262b33 !important;
-        color: #e8e6e1 !important;
         border: 1px solid #383e48 !important;
+    }
+    div[data-testid="stButton"] button,
+    div[data-testid="stButton"] button *,
+    button[kind="secondary"],
+    button[kind="secondary"] * {
+        color: #e8e6e1 !important;
     }
     div[data-testid="stButton"] button:hover,
     button[kind="secondary"]:hover {
         border-color: #d4af37 !important;
+    }
+    div[data-testid="stButton"] button:hover *,
+    button[kind="secondary"]:hover * {
         color: #d4af37 !important;
     }
     button[kind="primary"] {
         background-color: #d4af37 !important;
-        color: #1a1e24 !important;
         border: 1px solid #d4af37 !important;
         font-weight: 700 !important;
+    }
+    button[kind="primary"],
+    button[kind="primary"] * {
+        color: #1a1e24 !important;
     }
     button[kind="primary"]:hover {
         background-color: #f5b041 !important;
